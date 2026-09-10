@@ -38,8 +38,8 @@
   --r:12px;
   --r-g:16px;
   /* tipografías */
-  --f-display:"Outfit",system-ui,sans-serif;
-  --f-texto:"DM Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-display:"Montserrat",system-ui,sans-serif;
+  --f-texto:"Montserrat",system-ui,-apple-system,"Segoe UI",sans-serif;
   --f-dato:"DM Mono",ui-monospace,"Cascadia Mono",monospace;
 }
 
@@ -165,7 +165,7 @@ select.campo{cursor:pointer}
 .marca-sello svg{flex:none;color:var(--sello)}
 .marca-sello span{
   font-family:var(--f-display);font-size:19px;font-weight:600;
-  letter-spacing:.34em;text-transform:uppercase;color:var(--tinta);
+  letter-spacing:.3em;text-transform:uppercase;color:var(--tinta);
 }
 
 .portada-texto{max-width:520px}
@@ -175,8 +175,8 @@ select.campo{cursor:pointer}
   font-size:12px;letter-spacing:.28em;text-transform:uppercase;color:var(--tinta-2);
 }
 .portada-marca h1{
-  margin:0;font-family:var(--f-display);font-size:clamp(34px,5.2vw,60px);
-  line-height:1.04;font-weight:700;letter-spacing:-.025em;color:var(--tinta);
+  margin:0;font-family:var(--f-display);font-size:clamp(32px,5vw,56px);
+  line-height:1.06;font-weight:700;letter-spacing:-.03em;color:var(--tinta);
   text-wrap:balance;
 }
 .portada-marca h1 + p{margin:22px 0 0;font-size:19px;line-height:1.55;color:var(--tinta-2);max-width:400px}
@@ -357,6 +357,59 @@ select.campo{cursor:pointer}
   font-size:13.5px;cursor:pointer;color:var(--tinta);
 }
 .menu-lista button:hover{background:var(--sello-suave);color:var(--sello-claro)}
+
+/* ===================== Bandeja de notificaciones ===================== */
+.bandeja{position:relative}
+#btn-bandeja{position:relative;overflow:visible}
+#btn-bandeja.con-pendientes{border-color:var(--linea-fuerte);color:var(--sello-claro)}
+.bandeja-cuenta{
+  position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;padding:0 5px;
+  display:grid;place-items:center;border-radius:20px;
+  background:var(--sello);color:var(--sobre-sello);
+  font-family:var(--f-dato);font-size:10.5px;font-weight:500;line-height:1;
+  border:2px solid var(--papel);
+}
+.bandeja-panel{
+  position:absolute;right:0;top:calc(100% + 8px);z-index:40;
+  width:min(340px,calc(100vw - 32px));max-height:min(70vh,460px);overflow:auto;
+  background:var(--hoja);border:1px solid var(--linea-fuerte);border-radius:14px;
+  box-shadow:var(--sombra-alta);padding:6px;
+}
+.bandeja-cab{
+  display:flex;align-items:baseline;justify-content:space-between;gap:10px;
+  padding:9px 10px 10px;border-bottom:1px solid var(--linea);margin-bottom:4px;
+}
+.bandeja-cab b{font-family:var(--f-display);font-size:14px;font-weight:600;color:var(--tinta)}
+.bandeja-cab span{font-family:var(--f-dato);font-size:11px;color:var(--tinta-3)}
+.bandeja-vacia{margin:0;padding:22px 12px 26px;text-align:center;font-size:13.5px;color:var(--tinta-3)}
+.bandeja-grupo{padding:4px 0 6px}
+.bandeja-grupo h4{
+  margin:6px 0 4px;padding:0 10px;font-family:var(--f-dato);font-size:10.5px;
+  font-weight:400;letter-spacing:.16em;text-transform:uppercase;color:var(--tinta-3);
+}
+.bandeja-item{
+  width:100%;display:grid;grid-template-columns:auto minmax(0,1fr) auto;
+  align-items:center;gap:9px;text-align:left;
+  border:0;background:none;padding:8px 10px;border-radius:8px;cursor:pointer;
+}
+.bandeja-item:hover{background:var(--hoja-2)}
+.bandeja-item .bi-punto{
+  width:7px;height:7px;border-radius:50%;flex:none;background:var(--tinta-3);
+}
+.bandeja-item .bi-punto.alta{background:var(--alta)}
+.bandeja-item .bi-punto.media{background:var(--media)}
+.bandeja-item .bi-punto.baja{background:var(--baja)}
+.bandeja-item .bi-texto{
+  font-size:13.5px;color:var(--tinta);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.bandeja-item .bi-cuando{font-family:var(--f-dato);font-size:11px;color:var(--tinta-3);flex:none}
+.bandeja-item.urgente .bi-cuando{color:var(--sello-claro)}
+@media (max-width:560px){
+  .bandeja-panel{
+    position:fixed;left:16px;right:16px;top:auto;width:auto;
+    max-height:min(70vh,420px);
+  }
+}
 
 main{max-width:1560px;margin:0 auto;padding:28px 40px 64px;position:relative;overflow:hidden}
 @media (max-width:760px){main{padding:20px 20px 72px}}

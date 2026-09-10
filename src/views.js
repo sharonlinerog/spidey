@@ -325,3 +325,66 @@ export function indicadores(tareas, filtros) {
       : ""}
   </div>`;
 }
+
+/* ===================== Bandeja de notificaciones ===================== */
+
+/**
+ * Agrupa lo que pide atención hoy. Es la misma lógica que usa el correo
+ * diario, para que la campanita y el buzón nunca digan cosas distintas.
+ *
+ * Devuelve { vencidas, hoy, pronto, total } donde `total` cuenta solo lo
+ * accionable ahora (vencidas + de hoy). Lo de la próxima semana informa,
+ * no urge, así que no infla el contador.
+ */
+export function agruparPendientes(tareas) {
+  const hoy = hoyISO();
+  const limite = (() => {
+    const d = new Date(hoy + "T00:00:00");
+    d.setDate(d.getDate() + 7);
+    return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
+  })();
+
+  const activas = tareas.filter((t) => t.estado !== "hecho" && t.vence);
+  const vencidas = activas.filter((t) => t.vence < hoy).sort((a, b) => a.vence < b.vence ? -1 : 1);
+  const deHoy = activas.filter((t) => t.vence === hoy);
+  const pronto = activas
+    .filter((t) => t.vence > hoy && t.vence <= limite)
+    .sort((a, b) => (a.vence < b.vence ? -1 : 1));
+
+  return { vencidas, hoy: deHoy, pronto, total: vencidas.length + deHoy.length };
+}
+
+function filaBandeja(t, cuando, urgente) {
+  return `<button type="button" class="bandeja-item${urgente ? " urgente" : ""}" data-editar="${t.id}">
+    <span class="bi-punto ${t.prioridad}"></span>
+    <span class="bi-texto">${esc(t.titulo)}</span>
+    <span class="bi-cuando">${cuando}</span>
+  </button>`;
+}
+
+/** Panel de la campanita. Recibe el resultado de agruparPendientes. */
+export function bandeja(g) {
+  if (!g.vencidas.length && !g.hoy.length && !g.pronto.length) {
+    return `<div class="bandeja-cab"><b>Notificaciones</b></div>
+      <p class="bandeja-vacia">Nada pendiente. Todo al día.</p>`;
+  }
+
+  const grupo = (titulo, items, render) =>
+    items.length
+      ? `<div class="bandeja-grupo"><h4>${titulo}</h4>${items.map(render).join("")}</div>`
+      : "";
+
+  return `<div class="bandeja-cab">
+      <b>Notificaciones</b>
+      <span>${g.total ? g.total + (g.total === 1 ? " pendiente" : " pendientes") : "sin urgencias"}</span>
+    </div>
+    ${grupo("Vencidas", g.vencidas, (t) => {
+      const d = Math.abs(diasHasta(t.vence));
+      return filaBandeja(t, d === 1 ? "ayer" : "hace " + d + " días", true);
+    })}
+    ${grupo("Hoy", g.hoy, (t) => filaBandeja(t, "vence hoy", true))}
+    ${grupo("Esta semana", g.pronto, (t) => {
+      const d = diasHasta(t.vence);
+      return filaBandeja(t, d === 1 ? "mañana" : "en " + d + " días", false);
+    })}`;
+}

@@ -5,6 +5,7 @@ import {
   ESTADOS, ETIQ_ESTADO, ETIQ_PRIO,
   tablero, listaTabla, calendario, indicadores,
   personas, etiquetas, porColumna, filtrar, esc, hoyISO,
+  agruparPendientes, bandeja,
 } from "./views.js";
 
 const el = (id) => document.getElementById(id);
@@ -183,6 +184,19 @@ function pintar() {
   else if (vista === "lista") el("vista-lista").innerHTML = listaTabla(tareas, filtros, ordenLista);
   else if (vista === "calendario") el("vista-calendario").innerHTML = calendario(tareas, filtros, cursorMes);
   else el("vista-indicadores").innerHTML = indicadores(tareas, filtros);
+
+  pintarBandeja();
+}
+
+/* La campanita se recalcula en cada pintado: siempre refleja el estado real,
+   no un contador de "no leídas" que podría mentir. */
+function pintarBandeja() {
+  const g = agruparPendientes(tareas);
+  const cuenta = el("bandeja-cuenta");
+  cuenta.textContent = g.total > 9 ? "9+" : String(g.total);
+  cuenta.hidden = g.total === 0;
+  el("btn-bandeja").classList.toggle("con-pendientes", g.total > 0);
+  el("bandeja-panel").innerHTML = bandeja(g);
 }
 
 function sincronizarSelects() {
@@ -256,6 +270,16 @@ el("telon").addEventListener("mousedown", (e) => { if (e.target === el("telon"))
 /* ===================== interacción general ===================== */
 
 document.addEventListener("click", (e) => {
+  const campana = e.target.closest("#btn-bandeja");
+  if (campana) {
+    const abrirAhora = el("bandeja-panel").hidden;
+    el("bandeja-panel").hidden = !abrirAhora;
+    campana.setAttribute("aria-expanded", String(abrirAhora));
+    el("menu-lista").hidden = true;
+    return;
+  }
+  if (!e.target.closest(".bandeja")) el("bandeja-panel").hidden = true;
+
   const menu = e.target.closest("#btn-menu");
   if (menu) {
     const abiertoAhora = el("menu-lista").hidden;
@@ -275,7 +299,7 @@ document.addEventListener("click", (e) => {
   if (nueva) { abrir(null, nueva.dataset.estado); return; }
 
   const ed = e.target.closest("[data-editar]");
-  if (ed) { abrir(ed.dataset.editar); return; }
+  if (ed) { el("bandeja-panel").hidden = true; abrir(ed.dataset.editar); return; }
 
   const mv = e.target.closest("[data-mover]");
   if (mv) { moverRelativo(mv.dataset.id, parseInt(mv.dataset.mover, 10)); return; }
@@ -300,6 +324,7 @@ document.addEventListener("click", (e) => {
 });
 
 document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && !el("bandeja-panel").hidden) el("bandeja-panel").hidden = true;
   if (e.key === "Escape" && !el("telon").hidden) cerrar();
   if (e.key === "Enter" && e.target.classList && e.target.classList.contains("tarjeta")) {
     e.preventDefault(); abrir(e.target.dataset.id);
