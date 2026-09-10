@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Spidey">
+  <rect width="64" height="64" rx="14" fill="#101010"/>
+  <g transform="translate(8,8) scale(1.5)">
+    <path d="M16 2 28 8v6l-9-4.5L10 14v4l9 4.5L28 18v6l-12 6L4 24v-6l9 4.5L22 18v-4l-9-4.5L4 14V8L16 2Z" fill="#D30000"/>
+  </g>
+</svg>

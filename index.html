@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Spidey — Seguimiento de tareas</title>
+<meta name="description" content="Tablero Kanban, lista, calendario e indicadores para organizar tus tareas. Instálala en tu celular y llévala contigo.">
+<meta name="theme-color" content="#D30000">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Spidey">
+<meta name="mobile-web-app-capable" content="yes">
+<meta property="og:title" content="Spidey — Seguimiento de tareas">
+<meta property="og:description" content="Tablero Kanban, lista, calendario e indicadores. Gratis e instalable.">
+<meta property="og:type" content="website">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=DM+Mono:wght@400;500&display=swap">
+</head>
+<body>
+
+<!-- ===== Pantalla de acceso ===== -->
+<div class="portada" id="portada" hidden>
+
+  <!-- Panel de marca -->
+  <div class="portada-marca">
+    <svg class="malla" viewBox="0 0 400 400" preserveAspectRatio="none" aria-hidden="true"
+         style="left:-130px;top:-130px;width:460px;height:460px;opacity:.22" fill="none" stroke="currentColor" stroke-width="1">
+      <path d="M0 0 L400 400 M0 0 L400 200 M0 0 L200 400 M0 0 L400 90 M0 0 L90 400"/>
+      <path d="M70 0 Q40 40 0 70 M140 0 Q80 80 0 140 M210 0 Q120 120 0 210 M285 0 Q160 160 0 285 M360 0 Q200 200 0 360"/>
+    </svg>
+    <span class="resplandor" style="left:-150px;top:-110px;width:520px;height:520px" aria-hidden="true"></span>
+
+    <div class="marca-sello">
+      <svg width="26" height="26" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+        <path d="M16 2 28 8v6l-9-4.5L10 14v4l9 4.5L28 18v6l-12 6L4 24v-6l9 4.5L22 18v-4l-9-4.5L4 14V8L16 2Z" fill="currentColor"/>
+      </svg>
+      <span>Spidey</span>
+    </div>
+
+    <div class="portada-texto">
+      <p class="portada-kicker"><i aria-hidden="true"></i><span>Ideas · Tareas · Resultados</span></p>
+      <h1>Pequeñas tareas, grandes logros.</h1>
+      <p>Convierte tus planes en progreso real.</p>
+    </div>
+
+    <div class="portada-pie">
+      <div class="vistazo" aria-hidden="true">
+        <div class="vistazo-cab"><b>Mis tareas</b><span>Hoy · 3 pendientes</span></div>
+        <ul>
+          <li class="lista-hecho"><i></i><span>Diseñar propuesta</span><em>Hoy</em></li>
+          <li><i></i><span>Revisar presupuesto</span><em>Mañana</em></li>
+          <li><i></i><span>Preparar presentación</span><em>Esta semana</em></li>
+          <li><i></i><span>Planificar lanzamiento</span><em>Esta semana</em></li>
+        </ul>
+      </div>
+      <p class="portada-frase">La disciplina de hoy crea el éxito de mañana.</p>
+    </div>
+  </div>
+
+  <!-- Panel del formulario -->
+  <form class="tarjeta-acceso" id="form-acceso" novalidate>
+    <svg class="malla" viewBox="0 0 400 400" preserveAspectRatio="none" aria-hidden="true"
+         style="right:-150px;bottom:-150px;width:420px;height:420px;opacity:.14" fill="none" stroke="currentColor" stroke-width="1">
+      <path d="M400 400 L0 0 M400 400 L0 200 M400 400 L200 0 M400 400 L0 310 M400 400 L310 0"/>
+      <path d="M330 400 Q360 360 400 330 M260 400 Q320 320 400 260 M190 400 Q280 280 400 190 M115 400 Q240 240 400 115"/>
+    </svg>
+
+    <p class="acceso-kicker">Organice. Avance. Complete.</p>
+    <h2>Bienvenido de nuevo</h2>
+    <p class="acceso-intro">Ingrese para continuar gestionando sus tareas.</p>
+
+    <div class="pestanas-acceso" role="tablist">
+      <button type="button" role="tab" data-modo="entrar" aria-selected="true">Entrar</button>
+      <button type="button" role="tab" data-modo="crear" aria-selected="false">Crear cuenta</button>
+    </div>
+
+    <label for="acceso-email">Correo electrónico</label>
+    <div class="campo-icono">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
+        <rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="M3 7l9 6 9-6"/>
+      </svg>
+      <input class="campo" id="acceso-email" type="email" name="email" autocomplete="email" required placeholder="tu@correo.com">
+    </div>
+
+    <label for="acceso-clave">Contraseña</label>
+    <div class="campo-icono">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
+        <rect x="4.5" y="10.5" width="15" height="10" rx="2.5"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/>
+      </svg>
+      <input class="campo" id="acceso-clave" type="password" name="password" autocomplete="current-password" required minlength="8" placeholder="Tu contraseña">
+      <button type="button" class="btn-ojo" id="btn-ojo" aria-label="Mostrar la contraseña" aria-pressed="false">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
+          <path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12Z"/><circle cx="12" cy="12" r="2.8"/>
+        </svg>
+      </button>
+    </div>
+    <span class="ayuda" id="ayuda-clave" hidden>Usa al menos 8 caracteres.</span>
+
+    <div class="acceso-fila">
+      <button type="button" class="enlace" id="btn-olvide">¿Olvidó su contraseña?</button>
+    </div>
+
+    <p class="aviso-acceso" id="aviso-acceso" role="status" hidden></p>
+
+    <button type="submit" class="btn btn-p btn-ancho" id="btn-acceso">
+      <span id="btn-acceso-texto">Entrar</span>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M4 12h15"/><path d="M13 6l6 6-6 6"/>
+      </svg>
+    </button>
+
+    <p class="legal">Al crear una cuenta aceptas que guardemos tus tareas para mostrártelas. Puedes exportarlas o eliminar tu cuenta cuando quieras.</p>
+  </form>
+</div>
+
+<!-- ===== Aplicación ===== -->
+<div id="app" hidden>
+  <header class="barra">
+    <div class="barra-fila">
+      <div class="marca">
+        <h1>Spidey</h1>
+        <span>Seguimiento de tareas</span>
+      </div>
+      <div class="pestanas" role="tablist">
+        <button role="tab" data-vista="tablero" aria-selected="true">Tablero</button>
+        <button role="tab" data-vista="lista" aria-selected="false">Lista</button>
+        <button role="tab" data-vista="calendario" aria-selected="false">Calendario</button>
+        <button role="tab" data-vista="indicadores" aria-selected="false">Indicadores</button>
+      </div>
+      <div class="acciones">
+        <button class="btn btn-icono" id="btn-instalar" hidden title="Instalar la app">Instalar</button>
+        <button class="btn btn-icono" id="btn-tema" title="Cambiar tema" aria-label="Cambiar tema">◐</button>
+        <div class="menu">
+          <button class="btn btn-icono" id="btn-menu" aria-haspopup="true" aria-expanded="false" aria-label="Menú de cuenta">⋯</button>
+          <div class="menu-lista" id="menu-lista" hidden>
+            <span class="menu-correo" id="menu-correo"></span>
+            <button type="button" data-accion="csv">Exportar CSV</button>
+            <button type="button" data-accion="json">Descargar respaldo</button>
+            <button type="button" data-accion="salir">Cerrar sesión</button>
+          </div>
+        </div>
+        <button class="btn btn-p" id="btn-nueva">+ Nueva tarea</button>
+      </div>
+    </div>
+    <div class="filtros">
+      <input class="campo" id="buscar" type="search" placeholder="Buscar por título, nota o etiqueta…" aria-label="Buscar tareas">
+      <select class="campo" id="f-responsable" aria-label="Filtrar por responsable"><option value="">Todos los responsables</option></select>
+      <select class="campo" id="f-etiqueta" aria-label="Filtrar por etiqueta"><option value="">Todas las etiquetas</option></select>
+      <select class="campo" id="f-prioridad" aria-label="Filtrar por prioridad">
+        <option value="">Toda prioridad</option>
+        <option value="alta">Alta</option>
+        <option value="media">Media</option>
+        <option value="baja">Baja</option>
+      </select>
+      <button class="btn" id="btn-limpiar" hidden>Limpiar filtros</button>
+      <div class="estado-nube"><span class="punto" id="punto"></span><span id="texto-nube">Conectando…</span></div>
+    </div>
+  </header>
+
+  <main>
+    <svg class="malla" viewBox="0 0 400 400" preserveAspectRatio="none" aria-hidden="true"
+         style="right:-140px;top:-160px;width:440px;height:440px;z-index:0" fill="none" stroke="currentColor" stroke-width="1">
+      <path d="M400 0 L0 400 M400 0 L0 200 M400 0 L200 400 M400 0 L0 90 M400 0 L310 400"/>
+      <path d="M330 0 Q360 40 400 70 M260 0 Q320 80 400 140 M190 0 Q280 120 400 210 M115 0 Q240 160 400 285"/>
+    </svg>
+    <section id="vista-tablero" style="position:relative"></section>
+    <section id="vista-lista" style="position:relative" hidden></section>
+    <section id="vista-calendario" style="position:relative" hidden></section>
+    <section id="vista-indicadores" style="position:relative" hidden></section>
+  </main>
+</div>
+
+<!-- ===== Formulario de tarea ===== -->
+<div class="telon" id="telon" hidden>
+  <form class="hoja-form" id="form">
+    <h2 id="form-titulo">Nueva tarea</h2>
+    <label>Título
+      <input class="campo" name="titulo" required maxlength="140" placeholder="Ej. Enviar propuesta al cliente">
+    </label>
+    <label>Notas
+      <textarea class="campo" name="notas" maxlength="1200" placeholder="Detalles, enlaces, siguiente paso…"></textarea>
+    </label>
+    <div class="form-fila">
+      <label>Estado
+        <select class="campo" name="estado">
+          <option value="por_hacer">Por hacer</option>
+          <option value="en_curso">En curso</option>
+          <option value="en_revision">En revisión</option>
+          <option value="hecho">Hecho</option>
+        </select>
+      </label>
+      <label>Prioridad
+        <select class="campo" name="prioridad">
+          <option value="alta">Alta</option>
+          <option value="media" selected>Media</option>
+          <option value="baja">Baja</option>
+        </select>
+      </label>
+    </div>
+    <div class="form-fila">
+      <label>Responsable
+        <input class="campo" name="responsable" list="lista-personas" maxlength="60" placeholder="Nombre">
+      </label>
+      <label>Fecha límite
+        <input class="campo" name="vence" type="date">
+      </label>
+    </div>
+    <datalist id="lista-personas"></datalist>
+    <label>Etiquetas
+      <input class="campo" name="etiquetas" list="lista-etiquetas" maxlength="160" placeholder="cliente-acme, facturación">
+      <span class="ayuda">Sepáralas con comas.</span>
+    </label>
+    <datalist id="lista-etiquetas"></datalist>
+    <div class="pie-form">
+      <button type="button" class="btn btn-borrar" id="btn-borrar" hidden>Eliminar</button>
+      <button type="button" class="btn" id="btn-cancelar">Cancelar</button>
+      <button type="submit" class="btn btn-p">Guardar</button>
+    </div>
+  </form>
+</div>
+
+<div class="brindis" id="brindis" role="status" aria-live="polite" hidden></div>
+
+<script type="module" src="/src/main.js"></script>
+</body>
+</html>

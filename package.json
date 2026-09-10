@@ -1,0 +1,19 @@
+{
+  "name": "spidey",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Spidey — seguimiento de tareas con tablero Kanban, lista, calendario e indicadores. PWA instalable.",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview --port 4173"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.4"
+  },
+  "devDependencies": {
+    "vite": "^5.4.8",
+    "vite-plugin-pwa": "^0.20.5"
+  }
+}
