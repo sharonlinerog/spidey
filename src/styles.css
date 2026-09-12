@@ -652,8 +652,316 @@ textarea.campo{resize:vertical;min-height:76px}
 }
 .brindis.mal{background:var(--sello);border-color:var(--sello);color:var(--sobre-sello)}
 
+/* =========================================================
+   Selector de tableros
+   ========================================================= */
+.tb{position:relative}
+.tb-actual{
+  display:flex;align-items:center;gap:9px;max-width:260px;
+  border:1px solid var(--linea-fuerte);background:var(--hoja);color:var(--tinta);
+  padding:7px 12px;border-radius:10px;cursor:pointer;font-size:13.5px;
+}
+.tb-actual:hover{border-color:var(--sello)}
+.tb-actual > span:first-child{display:flex;align-items:center;gap:9px;min-width:0}
+.tb-actual svg{flex:none;color:var(--tinta-3)}
+.tb-color{width:9px;height:9px;border-radius:3px;flex:none;display:inline-block}
+.tb-actual-nombre,.tb-nombre{
+  font-family:var(--f-display);font-weight:600;font-size:13.5px;color:var(--tinta);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.tb-rol{
+  font-family:var(--f-dato);font-size:10px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--tinta-3);border:1px solid var(--linea);border-radius:5px;padding:1px 6px;flex:none;
+}
+.tb-panel{
+  position:absolute;left:0;top:calc(100% + 8px);z-index:45;
+  width:min(300px,calc(100vw - 32px));max-height:min(70vh,440px);overflow:auto;
+  background:var(--hoja);border:1px solid var(--linea-fuerte);border-radius:14px;
+  box-shadow:var(--sombra-alta);padding:6px;
+}
+.tb-lista{display:flex;flex-direction:column;gap:2px}
+.tb-item{
+  display:flex;align-items:center;gap:10px;width:100%;text-align:left;
+  border:0;background:none;padding:9px 10px;border-radius:9px;cursor:pointer;
+}
+.tb-item:hover{background:var(--hoja-2)}
+.tb-item.activo{background:var(--sello-suave)}
+.tb-item.activo .tb-nombre{color:var(--sello-claro)}
+.tb-item .tb-nombre{flex:1;min-width:0}
+.tb-pie{padding:8px 4px 4px;margin-top:4px;border-top:1px solid var(--linea)}
+.btn-ancho-suave{width:100%;justify-content:center}
+@media (max-width:860px){.tb-actual{max-width:170px}}
+
+/* Grupos y acciones destructivas del menú de cuenta */
+.menu-grupo{
+  font-family:var(--f-dato);font-size:10px;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--tinta-3);padding:10px 10px 4px;
+}
+.menu-lista button.peligro{color:var(--alerta)}
+.menu-lista button.peligro:hover{background:var(--alerta-fondo);color:var(--alerta)}
+
+/* =========================================================
+   Saludo de bienvenida (solo en pantallas pequeñas)
+   ========================================================= */
+.saludo{
+  position:relative;z-index:1;display:none;
+  margin:0 0 18px;padding:20px 22px;border-radius:var(--r-g);
+  border:1px solid var(--linea);
+  background:linear-gradient(150deg,var(--hoja-2) 0%,var(--papel) 100%);
+}
+/* Aquí sí aparece: en el celular la app arranca en el tablero y no hay
+   espacio para ver de un vistazo cómo viene el día. */
+@media (max-width:760px){.saludo{display:block}}
+
+.saludo #btn-cerrar-saludo,.saludo .icono-quitar{position:absolute;top:10px;right:10px}
+.saludo-hola{
+  margin:0;font-family:var(--f-display);font-size:22px;font-weight:700;
+  letter-spacing:-.02em;color:var(--tinta);text-wrap:balance;padding-right:30px;
+}
+.saludo-resumen{margin:6px 0 0;font-size:14px;line-height:1.5;color:var(--tinta-2)}
+.saludo-cifras{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+.saludo-cifras:empty{display:none}
+.saludo-cifra{
+  display:inline-flex;align-items:baseline;gap:5px;
+  padding:5px 11px;border-radius:20px;
+  border:1px solid var(--linea);background:var(--hoja);
+  font-size:12.5px;color:var(--tinta-2);
+}
+.saludo-cifra b{
+  font-family:var(--f-display);font-size:15px;font-weight:700;color:var(--tinta);
+  font-variant-numeric:tabular-nums;
+}
+.saludo-cifra.aviso{background:var(--alerta-fondo);border-color:var(--linea-fuerte)}
+.saludo-cifra.aviso b,.saludo-cifra.aviso{color:var(--alerta)}
+
+/* =========================================================
+   Actividad dentro de la campana
+   ========================================================= */
+.bandeja-item.actividad{align-items:flex-start}
+.bandeja-item.actividad .bi-punto{margin-top:6px}
+.bandeja-item.actividad .bi-texto{
+  white-space:normal;line-height:1.45;font-size:13px;color:var(--tinta-2);
+  overflow-wrap:anywhere;
+}
+.bandeja-item.actividad .bi-texto b{color:var(--tinta);font-weight:600}
+.bandeja-item.actividad .bi-texto i{color:var(--tinta-3)}
+.bandeja-item.actividad .bi-cuando{margin-top:5px}
+.bandeja-item.actividad.nueva{background:var(--sello-suave)}
+.bandeja-item.actividad.nueva .bi-cuando{color:var(--sello-claro)}
+.bandeja-nuevas{
+  float:right;font-family:var(--f-dato);font-size:10px;letter-spacing:.06em;
+  text-transform:none;color:var(--sello-claro);
+}
+
+.aviso-solo-lectura{
+  position:relative;z-index:1;margin:0 0 18px;padding:11px 14px;border-radius:10px;
+  background:var(--media-fondo);border:1px solid rgba(232,177,76,.35);
+  color:var(--tinta-2);font-size:13.5px;
+}
+
+/* =========================================================
+   Avance de subtareas e insignias en las tarjetas
+   ========================================================= */
+.avance{display:flex;align-items:center;gap:9px}
+.avance-pista{
+  flex:1;height:5px;border-radius:4px;background:var(--hoja-3);overflow:hidden;display:block;
+}
+.avance-relleno{
+  display:block;height:100%;border-radius:4px;min-width:2px;
+  background:linear-gradient(90deg,var(--sello),var(--sello-hondo));
+}
+.avance.completo .avance-relleno{background:var(--ok)}
+.avance-texto{
+  font-family:var(--f-dato);font-size:11px;color:var(--tinta-3);flex:none;
+  font-variant-numeric:tabular-nums;
+}
+.avance.completo .avance-texto{color:var(--ok)}
+.avance.grande{margin-bottom:16px}
+.avance.grande .avance-pista{height:8px}
+.avance.grande .avance-texto{font-size:12.5px}
+
+.insignias{display:flex;align-items:center;gap:8px;flex:none}
+.insignia{
+  display:inline-flex;align-items:center;gap:4px;
+  font-family:var(--f-dato);font-size:11px;color:var(--tinta-3);
+}
+.insignia svg{flex:none;stroke-linecap:round;stroke-linejoin:round}
+.mini-avance{
+  display:block;margin-top:4px;font-family:var(--f-dato);font-size:11px;
+  font-weight:400;color:var(--tinta-3);letter-spacing:.04em;
+}
+.mini-avance.completo{color:var(--ok)}
+td.col-titulo .insignias{margin-top:6px}
+
+/* =========================================================
+   Ficha de tarea: cabecera y pestañas
+   ========================================================= */
+.hoja-cab{display:flex;align-items:center;gap:12px}
+.hoja-cab h2{flex:1;min-width:0}
+.icono-quitar{
+  flex:none;width:26px;height:26px;display:grid;place-items:center;
+  border:0;border-radius:7px;background:transparent;color:var(--tinta-3);
+  font-size:17px;line-height:1;cursor:pointer;
+}
+.icono-quitar:hover{background:var(--alerta-fondo);color:var(--alerta)}
+.icono-quitar.grande{width:34px;height:34px;font-size:22px}
+
+.fichas{
+  display:flex;gap:2px;padding:4px;border-radius:11px;
+  border:1px solid var(--linea);background:var(--hoja-2);overflow-x:auto;
+}
+.fichas button{
+  border:0;background:transparent;padding:8px 13px;border-radius:8px;white-space:nowrap;
+  font-size:13px;font-weight:500;color:var(--tinta-3);cursor:pointer;
+}
+.fichas button:hover{color:var(--tinta)}
+.fichas button[aria-selected="true"]{background:var(--sello);color:var(--sobre-sello)}
+.ficha{display:flex;flex-direction:column;gap:16px}
+
+.panel-vacio{
+  margin:0;padding:26px 8px;text-align:center;font-size:13.5px;
+  color:var(--tinta-3);line-height:1.6;
+}
+.hoja-texto{margin:0;font-size:14px;line-height:1.6;color:var(--tinta-2)}
+.hoja-botones{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.mini-titulo{
+  margin:0;font-family:var(--f-dato);font-size:11px;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--tinta-3);font-weight:400;
+}
+.campo-mini{padding:5px 8px;font-size:12.5px;flex:none}
+
+/* =========================================================
+   Subtareas
+   ========================================================= */
+.subtareas{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
+.subtarea{
+  display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:9px;
+}
+.subtarea:hover{background:var(--hoja-2)}
+/* `.hoja-form label` las apila en columna y en versalitas. Aquí la casilla
+   y su texto van en la misma línea, así que se revierte de forma explícita. */
+.subtarea label{
+  flex:1;display:flex;flex-direction:row;align-items:flex-start;gap:11px;
+  cursor:pointer;min-width:0;
+  font-family:var(--f-texto);font-size:14px;letter-spacing:normal;text-transform:none;
+  color:var(--tinta);line-height:1.45;
+}
+.subtarea input[type="checkbox"]{
+  flex:none;width:17px;height:17px;margin-top:1px;accent-color:var(--sello);cursor:pointer;
+}
+.subtarea input:disabled{cursor:default}
+.subtarea.hecha label span{color:var(--tinta-3);text-decoration:line-through}
+.agregar-subtarea{display:flex;gap:8px}
+.agregar-subtarea .campo{flex:1;min-width:0}
+
+/* =========================================================
+   Comentarios
+   ========================================================= */
+.comentarios{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:16px}
+.comentario{display:flex;gap:11px;align-items:flex-start}
+.comentario .avatar{margin-top:2px}
+.comentario-cuerpo{flex:1;min-width:0}
+.comentario-cab{display:flex;align-items:center;gap:9px}
+.comentario-cab b{font-family:var(--f-display);font-size:13.5px;font-weight:600;color:var(--tinta)}
+.comentario-cab time{font-family:var(--f-dato);font-size:11px;color:var(--tinta-3);margin-right:auto}
+.comentario-cuerpo p{
+  margin:4px 0 0;font-size:14px;line-height:1.55;color:var(--tinta-2);
+  white-space:pre-wrap;overflow-wrap:anywhere;
+}
+.agregar-comentario{display:flex;flex-direction:column;gap:10px;align-items:flex-end}
+.agregar-comentario .campo{width:100%;min-height:62px;resize:vertical}
+
+/* =========================================================
+   Adjuntos
+   ========================================================= */
+.adjuntos{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.adjunto{
+  display:flex;align-items:center;gap:11px;padding:9px 10px;border-radius:10px;
+  border:1px solid var(--linea);background:var(--hoja-2);
+}
+.adjunto-icono{font-size:19px;flex:none;line-height:1}
+.adjunto-datos{
+  flex:1;min-width:0;text-align:left;border:0;background:none;cursor:pointer;padding:0;
+  display:flex;flex-direction:column;gap:2px;
+}
+.adjunto-datos b{
+  font-family:var(--f-display);font-size:13.5px;font-weight:600;color:var(--tinta);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.adjunto-datos:hover b{color:var(--sello-claro);text-decoration:underline}
+.adjunto-datos small{font-family:var(--f-dato);font-size:11px;color:var(--tinta-3)}
+.subir{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+
+/* =========================================================
+   Historial
+   ========================================================= */
+.historial{
+  list-style:none;margin:0;padding:0 0 0 6px;display:flex;flex-direction:column;gap:2px;
+}
+.hito{display:flex;gap:14px;align-items:flex-start;padding:9px 0;position:relative}
+/* La línea vertical se dibuja con el borde del punto, no con un pseudo
+   elemento por hito: así el último no arrastra una línea que no lleva a nada. */
+.hito:not(:last-child)::before{
+  content:"";position:absolute;left:3px;top:20px;bottom:-4px;width:1px;background:var(--linea);
+}
+.hito-punto{
+  flex:none;width:7px;height:7px;border-radius:50%;margin-top:6px;
+  background:var(--sello);position:relative;z-index:1;
+}
+.hito-cuerpo{flex:1;min-width:0}
+.hito-cuerpo p{
+  margin:0;font-size:13.5px;line-height:1.5;color:var(--tinta-2);overflow-wrap:anywhere;
+}
+.hito-cuerpo p b{color:var(--tinta);font-weight:600}
+.hito-cuerpo p i{color:var(--tinta-3)}
+.hito-cuerpo time{
+  display:block;margin-top:2px;font-family:var(--f-dato);font-size:10.5px;color:var(--tinta-3);
+}
+
+/* =========================================================
+   Miembros
+   ========================================================= */
+.miembros{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px}
+.miembro{
+  display:flex;align-items:center;gap:11px;padding:9px 8px;border-radius:10px;
+}
+.miembro:hover{background:var(--hoja-2)}
+.miembro-datos{flex:1;min-width:0;display:flex;flex-direction:column}
+.miembro-datos b{
+  font-family:var(--f-display);font-size:13.5px;font-weight:600;color:var(--tinta);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.miembro-datos small{
+  font-family:var(--f-dato);font-size:11px;color:var(--tinta-3);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.miembro.pendiente{opacity:.72}
+.avatar-vacio{background:var(--hoja-3)!important;color:var(--tinta-3)!important}
+.chip.rol{background:var(--hoja-3);color:var(--tinta-2);border-color:var(--linea)}
+.chip.rol.propietario{background:var(--sello-suave);color:var(--sello-claro);border-color:var(--linea-fuerte)}
+.invitar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.invitar input[name="email"]{flex:1 1 180px;min-width:0}
+
+/* Colores de tablero */
+.colores{border:0;padding:0;margin:0;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.colores legend{
+  font-family:var(--f-dato);font-size:11px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--tinta-3);padding:0;margin-bottom:8px;
+}
+/* `.hoja-form label` las pondría en columna y en versalitas; aquí solo son
+   un cuadrito de color, así que se les devuelve el display normal. */
+.color-op{display:block;cursor:pointer;line-height:0;margin:0}
+.color-op input{position:absolute;opacity:0;width:0;height:0}
+.color-op span{
+  display:block;width:28px;height:28px;border-radius:9px;
+  border:2px solid transparent;box-shadow:0 0 0 1px var(--linea);
+}
+.color-op input:checked + span{border-color:var(--papel);box-shadow:0 0 0 2px var(--tinta)}
+.color-op input:focus-visible + span{outline:2px solid var(--sello);outline-offset:3px}
+
 @media (prefers-reduced-motion:no-preference){
-  .tarjeta,.btn,.mini,.relleno,.tramo,.campo-icono,.pestanas button{
+  .tarjeta,.btn,.mini,.relleno,.tramo,.campo-icono,.pestanas button,
+  .tb-item,.fichas button,.subtarea,.miembro,.adjunto,.avance-relleno{
     transition:box-shadow .15s ease,border-color .15s ease,background .15s ease,
                color .15s ease,opacity .15s ease,width .35s cubic-bezier(.4,0,.2,1);
   }

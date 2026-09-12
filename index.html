@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Spidey — Seguimiento de tareas</title>
-<meta name="description" content="Tablero Kanban, lista, calendario e indicadores para organizar tus tareas. Instálala en tu celular y llévala contigo.">
+<meta name="description" content="Tableros compartidos con Kanban, lista, calendario e indicadores. Subtareas, comentarios, adjuntos e historial. Instálala en tu celular y llévala contigo.">
 <meta name="theme-color" content="#D30000">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
@@ -12,7 +12,7 @@
 <meta name="apple-mobile-web-app-title" content="Spidey">
 <meta name="mobile-web-app-capable" content="yes">
 <meta property="og:title" content="Spidey — Seguimiento de tareas">
-<meta property="og:description" content="Tablero Kanban, lista, calendario e indicadores. Gratis e instalable.">
+<meta property="og:description" content="Tableros compartidos, subtareas, comentarios y adjuntos. Gratis e instalable.">
 <meta property="og:type" content="website">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -42,7 +42,7 @@
     <div class="portada-texto">
       <p class="portada-kicker"><i aria-hidden="true"></i><span>Ideas · Tareas · Resultados</span></p>
       <h1>Pequeñas tareas, grandes logros.</h1>
-      <p>Convierte tus planes en progreso real.</p>
+      <p>Convierte tus planes en progreso real, solo o con tu equipo.</p>
     </div>
 
     <div class="portada-pie">
@@ -123,12 +123,25 @@
         <h1>Spidey</h1>
         <span>Seguimiento de tareas</span>
       </div>
+
+      <!-- Selector de tablero -->
+      <div class="tb">
+        <button class="tb-actual" id="btn-tablero" aria-haspopup="true" aria-expanded="false" aria-label="Cambiar de tablero">
+          <span id="tb-chapa"></span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M6 9l6 6 6-6"/>
+          </svg>
+        </button>
+        <div class="tb-panel" id="tb-panel" role="region" aria-label="Tus tableros" hidden></div>
+      </div>
+
       <div class="pestanas" role="tablist">
         <button role="tab" data-vista="tablero" aria-selected="true">Tablero</button>
         <button role="tab" data-vista="lista" aria-selected="false">Lista</button>
         <button role="tab" data-vista="calendario" aria-selected="false">Calendario</button>
         <button role="tab" data-vista="indicadores" aria-selected="false">Indicadores</button>
       </div>
+
       <div class="acciones">
         <button class="btn btn-icono" id="btn-instalar" hidden title="Instalar la app">Instalar</button>
         <button class="btn btn-icono" id="btn-tema" title="Cambiar tema" aria-label="Cambiar tema">◐</button>
@@ -145,9 +158,22 @@
           <button class="btn btn-icono" id="btn-menu" aria-haspopup="true" aria-expanded="false" aria-label="Menú de cuenta">⋯</button>
           <div class="menu-lista" id="menu-lista" hidden>
             <span class="menu-correo" id="menu-correo"></span>
+
+            <span class="menu-grupo">Tablero</span>
+            <button type="button" data-accion="miembros">Miembros y permisos</button>
+            <button type="button" data-accion="historial-tablero">Historial del tablero</button>
+            <button type="button" data-accion="editar-tablero" id="mi-editar-tablero">Renombrar tablero</button>
+            <button type="button" data-accion="nuevo-tablero">Nuevo tablero</button>
+            <button type="button" data-accion="borrar-tablero" id="mi-borrar-tablero" class="peligro">Eliminar tablero</button>
+            <button type="button" data-accion="salir-tablero" id="mi-salir-tablero" class="peligro">Salir del tablero</button>
+
+            <span class="menu-grupo">Cuenta</span>
+            <button type="button" data-accion="mi-nombre">Mi nombre</button>
+            <button type="button" data-accion="recordatorios" id="mi-recordatorios">Recordatorios…</button>
             <button type="button" data-accion="csv">Exportar CSV</button>
             <button type="button" data-accion="json">Descargar respaldo</button>
             <button type="button" data-accion="salir">Cerrar sesión</button>
+            <button type="button" data-accion="eliminar-cuenta" class="peligro">Eliminar mi cuenta</button>
           </div>
         </div>
         <button class="btn btn-p" id="btn-nueva">+ Nueva tarea</button>
@@ -174,6 +200,17 @@
       <path d="M400 0 L0 400 M400 0 L0 200 M400 0 L200 400 M400 0 L0 90 M400 0 L310 400"/>
       <path d="M330 0 Q360 40 400 70 M260 0 Q320 80 400 140 M190 0 Q280 120 400 210 M115 0 Q240 160 400 285"/>
     </svg>
+    <!-- Saludo de bienvenida. Solo se ve en pantallas pequeñas: en el
+         escritorio hay sitio de sobra para los datos y no hace falta
+         explicarle a nadie dónde está parado. -->
+    <section class="saludo" id="saludo" hidden aria-live="polite">
+      <button type="button" class="icono-quitar" id="btn-cerrar-saludo" aria-label="Ocultar el saludo">×</button>
+      <p class="saludo-hola" id="saludo-hola"></p>
+      <p class="saludo-resumen" id="saludo-resumen"></p>
+      <div class="saludo-cifras" id="saludo-cifras"></div>
+    </section>
+
+    <p class="aviso-solo-lectura" id="aviso-lectura" hidden>Estás en este tablero como <b>solo lectura</b>: puedes mirar y comentar, pero no cambiar tareas.</p>
     <section id="vista-tablero" style="position:relative"></section>
     <section id="vista-lista" style="position:relative" hidden></section>
     <section id="vista-calendario" style="position:relative" hidden></section>
@@ -181,53 +218,89 @@
   </main>
 </div>
 
-<!-- ===== Formulario de tarea ===== -->
+<!-- ===== Ficha de tarea ===== -->
 <div class="telon" id="telon" hidden>
-  <form class="hoja-form" id="form">
-    <h2 id="form-titulo">Nueva tarea</h2>
-    <label>Título
-      <input class="campo" name="titulo" required maxlength="140" placeholder="Ej. Enviar propuesta al cliente">
-    </label>
-    <label>Notas
-      <textarea class="campo" name="notas" maxlength="1200" placeholder="Detalles, enlaces, siguiente paso…"></textarea>
-    </label>
-    <div class="form-fila">
-      <label>Estado
-        <select class="campo" name="estado">
-          <option value="por_hacer">Por hacer</option>
-          <option value="en_curso">En curso</option>
-          <option value="en_revision">En revisión</option>
-          <option value="hecho">Hecho</option>
-        </select>
-      </label>
-      <label>Prioridad
-        <select class="campo" name="prioridad">
-          <option value="alta">Alta</option>
-          <option value="media" selected>Media</option>
-          <option value="baja">Baja</option>
-        </select>
-      </label>
+  <div class="hoja-form" role="dialog" aria-modal="true" aria-labelledby="form-titulo">
+    <div class="hoja-cab">
+      <h2 id="form-titulo">Nueva tarea</h2>
+      <button type="button" class="icono-quitar grande" id="btn-cerrar-form" aria-label="Cerrar">×</button>
     </div>
-    <div class="form-fila">
-      <label>Responsable
-        <input class="campo" name="responsable" list="lista-personas" maxlength="60" placeholder="Nombre">
-      </label>
-      <label>Fecha límite
-        <input class="campo" name="vence" type="date">
-      </label>
+
+    <!-- Las fichas solo aparecen al editar: subtareas, comentarios y
+         adjuntos necesitan que la tarea ya exista en la base de datos. -->
+    <div class="fichas" id="fichas-tarea" role="tablist" hidden>
+      <button type="button" role="tab" data-ficha="detalles" aria-selected="true">Detalles</button>
+      <button type="button" role="tab" data-ficha="subtareas" aria-selected="false">Subtareas</button>
+      <button type="button" role="tab" data-ficha="comentarios" aria-selected="false">Comentarios</button>
+      <button type="button" role="tab" data-ficha="adjuntos" aria-selected="false">Adjuntos</button>
+      <button type="button" role="tab" data-ficha="historial" aria-selected="false">Historial</button>
     </div>
-    <datalist id="lista-personas"></datalist>
-    <label>Etiquetas
-      <input class="campo" name="etiquetas" list="lista-etiquetas" maxlength="160" placeholder="cliente-acme, facturación">
-      <span class="ayuda">Sepáralas con comas.</span>
-    </label>
-    <datalist id="lista-etiquetas"></datalist>
-    <div class="pie-form">
-      <button type="button" class="btn btn-borrar" id="btn-borrar" hidden>Eliminar</button>
-      <button type="button" class="btn" id="btn-cancelar">Cancelar</button>
-      <button type="submit" class="btn btn-p">Guardar</button>
+
+    <form class="ficha" id="form" data-ficha="detalles">
+      <label>Título
+        <input class="campo" name="titulo" required maxlength="140" placeholder="Ej. Enviar propuesta al cliente">
+      </label>
+      <label>Notas
+        <textarea class="campo" name="notas" maxlength="1200" placeholder="Detalles, enlaces, siguiente paso…"></textarea>
+      </label>
+      <div class="form-fila">
+        <label>Estado
+          <select class="campo" name="estado">
+            <option value="por_hacer">Por hacer</option>
+            <option value="en_curso">En curso</option>
+            <option value="en_revision">En revisión</option>
+            <option value="hecho">Hecho</option>
+          </select>
+        </label>
+        <label>Prioridad
+          <select class="campo" name="prioridad">
+            <option value="alta">Alta</option>
+            <option value="media" selected>Media</option>
+            <option value="baja">Baja</option>
+          </select>
+        </label>
+      </div>
+      <div class="form-fila">
+        <label>Responsable
+          <input class="campo" name="responsable" list="lista-personas" maxlength="60" placeholder="Nombre">
+        </label>
+        <label>Fecha límite
+          <input class="campo" name="vence" type="date">
+        </label>
+      </div>
+      <datalist id="lista-personas"></datalist>
+      <label>Etiquetas
+        <input class="campo" name="etiquetas" list="lista-etiquetas" maxlength="160" placeholder="cliente-acme, facturación">
+        <span class="ayuda">Sepáralas con comas.</span>
+      </label>
+      <datalist id="lista-etiquetas"></datalist>
+      <label id="campo-mover" hidden>Mover a otro tablero
+        <select class="campo" id="mover-tablero"></select>
+        <span class="ayuda">La tarea se lleva consigo subtareas, comentarios y adjuntos.</span>
+      </label>
+      <div class="pie-form">
+        <button type="button" class="btn btn-borrar" id="btn-borrar" hidden>Eliminar</button>
+        <button type="button" class="btn" id="btn-cancelar">Cancelar</button>
+        <button type="submit" class="btn btn-p" id="btn-guardar">Guardar</button>
+      </div>
+    </form>
+
+    <section class="ficha" data-ficha="subtareas"  id="panel-subtareas"  hidden></section>
+    <section class="ficha" data-ficha="comentarios" id="panel-comentarios" hidden></section>
+    <section class="ficha" data-ficha="adjuntos"   id="panel-adjuntos"   hidden></section>
+    <section class="ficha" data-ficha="historial"  id="panel-historial"  hidden></section>
+  </div>
+</div>
+
+<!-- ===== Hoja genérica: miembros, historial del tablero, nuevo tablero ===== -->
+<div class="telon" id="telon-hoja" hidden>
+  <div class="hoja-form" role="dialog" aria-modal="true" aria-labelledby="hoja-titulo">
+    <div class="hoja-cab">
+      <h2 id="hoja-titulo">Tablero</h2>
+      <button type="button" class="icono-quitar grande" id="btn-cerrar-hoja" aria-label="Cerrar">×</button>
     </div>
-  </form>
+    <div id="hoja-cuerpo"></div>
+  </div>
 </div>
 
 <div class="brindis" id="brindis" role="status" aria-live="polite" hidden></div>

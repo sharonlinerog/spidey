@@ -8,6 +8,12 @@ export default defineConfig({
   },
   plugins: [
     VitePWA({
+      // injectManifest en vez de generateSW: el service worker se escribe a
+      // mano en src/sw.js porque necesita atender el evento `push`, cosa que
+      // un service worker generado no hace.
+      strategies: "injectManifest",
+      srcDir: "src",
+      filename: "sw.js",
       registerType: "autoUpdate",
       injectRegister: "script-defer",
       includeAssets: ["favicon.svg", "icons/apple-touch-icon.png"],
@@ -15,7 +21,7 @@ export default defineConfig({
         name: "Spidey — Seguimiento de tareas",
         short_name: "Spidey",
         description:
-          "Tablero Kanban, lista, calendario e indicadores para organizar tus tareas.",
+          "Tableros compartidos, subtareas, comentarios y adjuntos para organizar el trabajo de tu equipo.",
         lang: "es",
         dir: "ltr",
         start_url: "/",
@@ -36,26 +42,10 @@ export default defineConfig({
           },
         ],
       },
-      workbox: {
+      injectManifest: {
         globPatterns: ["**/*.{js,css,html,svg,png,woff2}"],
-        navigateFallback: "/index.html",
-        cleanupOutdatedCaches: true,
-        runtimeCaching: [
-          {
-            // Tipografías: se sirven desde caché y se refrescan en segundo plano.
-            urlPattern: /^https:\/\/fonts\.(googleapis|gstatic)\.com\/.*/i,
-            handler: "StaleWhileRevalidate",
-            options: {
-              cacheName: "tipografias",
-              expiration: { maxEntries: 24, maxAgeSeconds: 60 * 60 * 24 * 365 },
-            },
-          },
-        ],
-        // Nunca cachear las llamadas a Supabase: los datos deben venir frescos
-        // y el modo sin conexión se resuelve con la caché local de la app.
-        navigateFallbackDenylist: [/^\/auth/, /^\/rest/],
       },
-      devOptions: { enabled: false },
+      devOptions: { enabled: false, type: "module" },
     }),
   ],
 });

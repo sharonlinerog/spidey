@@ -97,23 +97,55 @@ function vacio(titulo, texto, conBoton) {
 
 /* ---------------- tablero ---------------- */
 
-export function tablero(tareas, filtros, cargado) {
+/**
+ * `meta` trae lo que no vive en la fila de la tarea: avance de subtareas y
+ * cuántos comentarios y adjuntos tiene. Se pasa como parámetro en vez de
+ * importarlo del store para que este archivo siga siendo funciones puras.
+ */
+const SIN_META = { avance: () => null, comentarios: () => 0, adjuntos: () => 0 };
+
+export function tablero(tareas, filtros, cargado, meta = SIN_META) {
   const base = filtrar(tareas, filtros);
   if (!cargado) return vacio("Cargando tu tablero…", "Un momento mientras traemos las tareas guardadas.", false);
   if (!tareas.length)
-    return vacio("Tu tablero está vacío", "Crea la primera tarea y arrástrala entre columnas a medida que avanza.", true);
+    return vacio("Este tablero está vacío", "Crea la primera tarea y arrástrala entre columnas a medida que avanza.", true);
 
   return `<div class="tablero">${ESTADOS.map((e) => {
     const col = porColumna(e.id, base);
     return `<div class="columna" data-estado="${e.id}">
       <div class="col-cab"><span class="raya ${e.id}"></span><h2>${e.label}</h2><span class="cuenta">${col.length}</span></div>
-      <div class="lista-col" data-drop="${e.id}">${col.map(tarjeta).join("")}</div>
+      <div class="lista-col" data-drop="${e.id}">${col.map((t) => tarjeta(t, meta)).join("")}</div>
       <button class="agregar-col" data-nueva data-estado="${e.id}">+ Añadir aquí</button>
     </div>`;
   }).join("")}</div>`;
 }
 
-function tarjeta(t) {
+/** Insignias discretas: solo aparecen cuando hay algo que contar. */
+function insignias(t, meta) {
+  const nc = meta.comentarios(t.id);
+  const na = meta.adjuntos(t.id);
+  if (!nc && !na) return "";
+  return `<span class="insignias">${
+    nc ? `<span class="insignia" title="${nc} comentario${nc === 1 ? "" : "s"}">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9 9 0 0 1-3.9-.9L3 21l1.9-5A8.4 8.4 0 0 1 12 3.1a8.4 8.4 0 0 1 9 8.4Z"/></svg>${nc}</span>` : ""
+  }${
+    na ? `<span class="insignia" title="${na} adjunto${na === 1 ? "" : "s"}">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21.4 11.05 12.25 20.2a5.5 5.5 0 0 1-7.78-7.78l9.19-9.19a3.67 3.67 0 0 1 5.19 5.19l-9.2 9.19a1.83 1.83 0 0 1-2.59-2.6l8.49-8.48"/></svg>${na}</span>` : ""
+  }</span>`;
+}
+
+/** Barra de avance de subtareas. Nula si la tarea no tiene ninguna. */
+function avanceHTML(t, meta) {
+  const a = meta.avance(t.id);
+  if (!a) return "";
+  const pct = Math.round((a.hechas / a.total) * 100);
+  return `<div class="avance${a.hechas === a.total ? " completo" : ""}" title="${a.hechas} de ${a.total} subtareas">
+    <span class="avance-pista"><span class="avance-relleno" style="width:${pct}%"></span></span>
+    <span class="avance-texto">${a.hechas}/${a.total}</span>
+  </div>`;
+}
+
+function tarjeta(t, meta = SIN_META) {
   const i = ESTADOS.findIndex((e) => e.id === t.estado);
   const d = diasHasta(t.vence);
   const esVenc = vencida(t);
@@ -134,12 +166,14 @@ function tarjeta(t) {
       ${t.vence ? `<span class="chip fecha${esVenc ? " vencida" : ""}">${textoFecha}</span>` : ""}
       ${(t.etiquetas || []).slice(0, 3).map((e) => `<span class="chip etiqueta">${esc(e)}</span>`).join("")}
     </div>
+    ${avanceHTML(t, meta)}
     <div class="t-pie">
       <span class="quien">${
         t.responsable
           ? `<span class="avatar" style="background:${colorPersona(t.responsable)}">${esc(iniciales(t.responsable))}</span><span>${esc(t.responsable)}</span>`
           : '<span style="color:var(--tinta-3);font-size:12px">Sin responsable</span>'
       }</span>
+      ${insignias(t, meta)}
       <button class="mover" data-mover="-1" data-id="${t.id}" ${i <= 0 ? "disabled" : ""} aria-label="Mover a la columna anterior">‹</button>
       <button class="mover" data-mover="1" data-id="${t.id}" ${i >= ESTADOS.length - 1 ? "disabled" : ""} aria-label="Mover a la columna siguiente">›</button>
     </div></article>`;
@@ -147,7 +181,7 @@ function tarjeta(t) {
 
 /* ---------------- lista ---------------- */
 
-export function listaTabla(tareas, filtros, orden) {
+export function listaTabla(tareas, filtros, orden, meta = SIN_META) {
   const base = [...filtrar(tareas, filtros)];
   if (!base.length)
     return vacio("Nada por aquí", "Ninguna tarea coincide con los filtros activos.", !tareas.length);
@@ -176,7 +210,10 @@ export function listaTabla(tareas, filtros, orden) {
     <th>Etiquetas</th><th></th></tr></thead><tbody>${base
       .map((t) => {
         const v = vencida(t);
-        return `<tr><td class="col-titulo">${esc(t.titulo)}</td>
+        const a = meta.avance(t.id);
+        return `<tr><td class="col-titulo">${esc(t.titulo)}
+          ${a ? `<span class="mini-avance${a.hechas === a.total ? " completo" : ""}">${a.hechas}/${a.total} subtareas</span>` : ""}
+          ${insignias(t, meta)}</td>
         <td><span class="marca-estado"><span class="raya ${t.estado}"></span>${ETIQ_ESTADO[t.estado]}</span></td>
         <td><span class="chip ${t.prioridad}">${ETIQ_PRIO[t.prioridad]}</span></td>
         <td>${t.responsable ? `<span class="quien"><span class="avatar" style="background:${colorPersona(t.responsable)}">${esc(iniciales(t.responsable))}</span><span>${esc(t.responsable)}</span></span>` : guion}</td>
@@ -362,21 +399,51 @@ function filaBandeja(t, cuando, urgente) {
   </button>`;
 }
 
-/** Panel de la campanita. Recibe el resultado de agruparPendientes. */
-export function bandeja(g) {
-  if (!g.vencidas.length && !g.hoy.length && !g.pronto.length) {
+/**
+ * Una línea de "lo que hizo otra persona".
+ *
+ * El texto llega ya redactado desde fuera. Es a propósito: redactarlo aquí
+ * obligaría a views.js a importar detalle.js, que a su vez importa views.js,
+ * y ese abrazo entre módulos es justo lo que no queremos.
+ */
+function filaActividad(a) {
+  return `<button type="button" class="bandeja-item actividad${a.nueva ? " nueva" : ""}"${
+    a.tareaId ? ` data-editar="${a.tareaId}"` : ""
+  }>
+    <span class="bi-punto ${a.nueva ? "alta" : "baja"}"></span>
+    <span class="bi-texto">${a.html}</span>
+    <span class="bi-cuando">${esc(a.cuando)}</span>
+  </button>`;
+}
+
+/**
+ * Panel de la campanita: el único sitio donde viven las notificaciones.
+ *
+ * Junta dos cosas distintas que a la persona le importan por igual: lo que
+ * se le vence (calculado de sus tareas) y lo que hicieron los demás en el
+ * tablero (venido de la bitácora). `actividad` llega ya redactada.
+ */
+export function bandeja(g, actividad = []) {
+  const nuevas = actividad.filter((a) => a.nueva).length;
+  const hayAlgo = g.vencidas.length || g.hoy.length || g.pronto.length || actividad.length;
+
+  if (!hayAlgo) {
     return `<div class="bandeja-cab"><b>Notificaciones</b></div>
       <p class="bandeja-vacia">Nada pendiente. Todo al día.</p>`;
   }
 
-  const grupo = (titulo, items, render) =>
+  const grupo = (titulo, items, render, extra) =>
     items.length
-      ? `<div class="bandeja-grupo"><h4>${titulo}</h4>${items.map(render).join("")}</div>`
+      ? `<div class="bandeja-grupo"><h4>${titulo}${extra || ""}</h4>${items.map(render).join("")}</div>`
       : "";
+
+  const resumen = [];
+  if (g.total) resumen.push(g.total + (g.total === 1 ? " pendiente" : " pendientes"));
+  if (nuevas) resumen.push(nuevas + (nuevas === 1 ? " novedad" : " novedades"));
 
   return `<div class="bandeja-cab">
       <b>Notificaciones</b>
-      <span>${g.total ? g.total + (g.total === 1 ? " pendiente" : " pendientes") : "sin urgencias"}</span>
+      <span>${resumen.length ? resumen.join(" · ") : "sin urgencias"}</span>
     </div>
     ${grupo("Vencidas", g.vencidas, (t) => {
       const d = Math.abs(diasHasta(t.vence));
@@ -386,5 +453,11 @@ export function bandeja(g) {
     ${grupo("Esta semana", g.pronto, (t) => {
       const d = diasHasta(t.vence);
       return filaBandeja(t, d === 1 ? "mañana" : "en " + d + " días", false);
-    })}`;
+    })}
+    ${grupo(
+      "En el tablero",
+      actividad,
+      filaActividad,
+      nuevas ? `<span class="bandeja-nuevas">${nuevas} sin ver</span>` : ""
+    )}`;
 }
