@@ -53,6 +53,7 @@ let detalle = { tareaId: null, comentarios: [], adjuntos: [], historial: [] };
 let actividad = [];
 let visto = null;
 let miPerfil = null;
+let resumen = {};
 let canal = null;
 
 let alCambiar = () => {};
@@ -238,6 +239,33 @@ async function cargarActividad() {
   actividad = data || [];
 }
 
+/* ---------------- resumen de cada tablero ---------------- */
+
+/** { tableroId: { tareas, miembros } }, para el selector de tableros. */
+export const resumenDe = (id) => resumen[id] || { tareas: 0, miembros: 0 };
+
+/**
+ * Cuántas tareas y miembros tiene cada tablero al que perteneces.
+ * Dos consultas sin filtro: RLS ya limita las filas a tus tableros, así
+ * que no hace falta una consulta por tablero.
+ */
+async function cargarResumenTableros() {
+  if (!usuario || !navigator.onLine) return;
+
+  const [t, m] = await Promise.all([
+    supabase.from("tareas").select("tablero_id,estado"),
+    supabase.from("tablero_miembros").select("tablero_id"),
+  ]);
+
+  const nuevo = {};
+  const toca = (id) => (nuevo[id] = nuevo[id] || { tareas: 0, miembros: 0 });
+  // Solo cuentan las tareas vivas: un tablero con cien cerradas y ninguna
+  // pendiente no está "lleno", está terminado.
+  for (const f of t.data || []) if (f.estado !== "hecho") toca(f.tablero_id).tareas++;
+  for (const f of m.data || []) toca(f.tablero_id).miembros++;
+  resumen = nuevo;
+}
+
 /* ---------------- mi perfil ---------------- */
 
 export const miPerfilActual = () => miPerfil;
@@ -381,6 +409,8 @@ export async function cargarTableros(opciones = {}) {
     if (!r.ok) alEstado("mal", r.mensaje);
     return;
   }
+
+  await cargarResumenTableros();
 
   // Si te expulsaron del tablero activo, hay que mudarse a otro sí o sí.
   const perdido = !tableros.some((t) => t.id === tableroId);

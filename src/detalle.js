@@ -78,23 +78,81 @@ function colorDe(n) {
 
 /* ===================== selector de tableros ===================== */
 
-export function selectorTableros(tableros, activoId) {
+/**
+ * Panel de tableros.
+ *
+ * Se agrupan en tres: los que fijaste, los que compartes con alguien y los
+ * que son solo tuyos. Con dos tableros la agrupación sobra, así que solo
+ * aparece cuando hay suficientes para que valga la pena.
+ *
+ * `opciones`: { busqueda, fijados:Set, resumenDe(id) }
+ */
+export function selectorTableros(tableros, activoId, opciones = {}) {
   if (!tableros.length) return "";
 
-  return `<div class="tb-lista">${tableros
-    .map((t) => {
-      const activo = t.id === activoId;
-      return `<button type="button" class="tb-item${activo ? " activo" : ""}" data-tablero="${t.id}" ${
-        activo ? 'aria-current="true"' : ""
-      }>
+  const fijados = opciones.fijados || new Set();
+  const resumenDe = opciones.resumenDe || (() => ({ tareas: 0, miembros: 0 }));
+  const q = (opciones.busqueda || "").toLowerCase().trim();
+
+  const visibles = q
+    ? tableros.filter((t) => t.nombre.toLowerCase().includes(q))
+    : tableros;
+
+  const item = (t) => {
+    const activo = t.id === activoId;
+    const r = resumenDe(t.id);
+    const meta = [];
+    if (r.tareas) meta.push(r.tareas + (r.tareas === 1 ? " tarea" : " tareas"));
+    if (r.miembros > 1) meta.push(r.miembros + " miembros");
+    if (t.rol !== "propietario") meta.push(ETIQ_ROL[t.rol]);
+
+    return `<div class="tb-fila${activo ? " activo" : ""}">
+      <button type="button" class="tb-item" data-tablero="${t.id}" ${activo ? 'aria-current="true"' : ""}>
         <span class="tb-color" style="background:${esc(t.color)}"></span>
-        <span class="tb-nombre">${esc(t.nombre)}</span>
-        ${t.rol !== "propietario" ? `<span class="tb-rol">${ETIQ_ROL[t.rol]}</span>` : ""}
-      </button>`;
-    })
-    .join("")}</div>
+        <span class="tb-txt">
+          <span class="tb-nombre">${esc(t.nombre)}</span>
+          ${meta.length ? `<span class="tb-meta">${esc(meta.join(" · "))}</span>` : ""}
+        </span>
+      </button>
+      <button type="button" class="tb-fijar${fijados.has(t.id) ? " puesto" : ""}" data-fijar="${t.id}"
+              aria-pressed="${String(fijados.has(t.id))}"
+              aria-label="${fijados.has(t.id) ? "Quitar de fijados" : "Fijar"} ${esc(t.nombre)}">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="${fijados.has(t.id) ? "currentColor" : "none"}" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 3.5l2.6 5.6 6.1.8-4.5 4.2 1.2 6-5.4-3-5.4 3 1.2-6L3.3 9.9l6.1-.8L12 3.5Z"/>
+        </svg>
+      </button>
+    </div>`;
+  };
+
+  let cuerpo;
+  if (!visibles.length) {
+    cuerpo = `<p class="tb-vacio">Ningún tablero se llama así.</p>`;
+  } else if (visibles.length < 4 && !fijados.size) {
+    // Pocos tableros: agruparlos sería más ruido que ayuda.
+    cuerpo = `<div class="tb-lista">${visibles.map(item).join("")}</div>`;
+  } else {
+    const grupos = [
+      { et: "Fijados", lista: visibles.filter((t) => fijados.has(t.id)) },
+      { et: "Equipos", lista: visibles.filter((t) => !fijados.has(t.id) && resumenDe(t.id).miembros > 1) },
+      { et: "Personal", lista: visibles.filter((t) => !fijados.has(t.id) && resumenDe(t.id).miembros <= 1) },
+    ];
+    cuerpo = grupos
+      .filter((g) => g.lista.length)
+      .map((g) => `<div class="tb-grupo">${g.et}</div><div class="tb-lista">${g.lista.map(item).join("")}</div>`)
+      .join("");
+  }
+
+  return `${
+    tableros.length > 4
+      ? `<div class="tb-buscar">
+           <input class="campo" id="tb-busqueda" type="search" placeholder="Buscar tablero…"
+                  aria-label="Buscar entre tus tableros" value="${esc(opciones.busqueda || "")}">
+         </div>`
+      : ""
+  }
+    ${cuerpo}
     <div class="tb-pie">
-      <button type="button" class="btn btn-p btn-ancho-suave" data-accion="nuevo-tablero">+ Nuevo tablero</button>
+      <button type="button" class="tb-nuevo" data-accion="nuevo-tablero">+ Nuevo tablero</button>
     </div>`;
 }
 

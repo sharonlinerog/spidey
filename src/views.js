@@ -689,7 +689,7 @@ export function agruparPendientes(tareas) {
 }
 
 function filaBandeja(t, cuando, urgente) {
-  return `<button type="button" class="bandeja-item${urgente ? " urgente" : ""}" data-editar="${t.id}">
+  return `<button type="button" class="bandeja-item por-vencer${urgente ? " urgente" : ""}" data-editar="${t.id}">
     <span class="bi-punto ${t.prioridad}"></span>
     <span class="bi-texto">${esc(t.titulo)}</span>
     <span class="bi-cuando">${cuando}</span>
@@ -720,13 +720,25 @@ function filaActividad(a) {
  * se le vence (calculado de sus tareas) y lo que hicieron los demás en el
  * tablero (venido de la bitácora). `actividad` llega ya redactada.
  */
-export function bandeja(g, actividad = []) {
+export function bandeja(g, actividad = [], opciones = {}) {
+  const soloMias = opciones.soloMias === true;
   const nuevas = actividad.filter((a) => a.nueva).length;
   const hayAlgo = g.vencidas.length || g.hoy.length || g.pronto.length || actividad.length;
 
+  // El filtro solo aparece cuando el tablero es de varios: en uno propio,
+  // "mías" y "todo" son lo mismo y el control sobra.
+  const filtro = opciones.conFiltro
+    ? `<div class="bandeja-filtro" role="group" aria-label="Filtrar notificaciones">
+         <button type="button" data-bandeja="todo" aria-selected="${String(!soloMias)}">Todo</button>
+         <button type="button" data-bandeja="mias" aria-selected="${String(soloMias)}">Mías</button>
+       </div>`
+    : "";
+
   if (!hayAlgo) {
-    return `<div class="bandeja-cab"><b>Notificaciones</b></div>
-      <p class="bandeja-vacia">Nada pendiente. Todo al día.</p>`;
+    return `<div class="bandeja-cab"><b>Notificaciones</b>${filtro}</div>
+      <p class="bandeja-vacia">${
+        soloMias ? "Nada asignado a ti pide atención." : "Nada pendiente. Todo al día."
+      }</p>`;
   }
 
   const grupo = (titulo, items, render, extra) =>
@@ -738,23 +750,28 @@ export function bandeja(g, actividad = []) {
   if (g.total) resumen.push(g.total + (g.total === 1 ? " pendiente" : " pendientes"));
   if (nuevas) resumen.push(nuevas + (nuevas === 1 ? " novedad" : " novedades"));
 
-  return `<div class="bandeja-cab">
-      <b>Notificaciones</b>
-      <span>${resumen.length ? resumen.join(" · ") : "sin urgencias"}</span>
-    </div>
-    ${grupo("Vencidas", g.vencidas, (t) => {
+  const porVencer =
+    grupo("Vencidas", g.vencidas, (t) => {
       const d = Math.abs(diasHasta(t.vence));
       return filaBandeja(t, d === 1 ? "ayer" : "hace " + d + " días", true);
-    })}
-    ${grupo("Hoy", g.hoy, (t) => filaBandeja(t, "vence hoy", true))}
-    ${grupo("Esta semana", g.pronto, (t) => {
+    }) +
+    grupo("Hoy", g.hoy, (t) => filaBandeja(t, "vence hoy", true)) +
+    grupo("Esta semana", g.pronto, (t) => {
       const d = diasHasta(t.vence);
       return filaBandeja(t, d === 1 ? "mañana" : "en " + d + " días", false);
-    })}
-    ${grupo(
-      "En el tablero",
-      actividad,
-      filaActividad,
-      nuevas ? `<span class="bandeja-nuevas">${nuevas} sin ver</span>` : ""
-    )}`;
+    });
+
+  return `<div class="bandeja-cab">
+      <b>Notificaciones</b>
+      ${filtro}
+      <span class="bandeja-resumen">${resumen.length ? resumen.join(" · ") : "sin urgencias"}</span>
+    </div>
+    ${porVencer ? `<div class="bandeja-seccion"><h3>Por vencer</h3>${porVencer}</div>` : ""}
+    ${
+      actividad.length
+        ? `<div class="bandeja-seccion"><h3>Actividad${
+            nuevas ? `<span class="bandeja-nuevas">${nuevas} sin ver</span>` : ""
+          }</h3>${actividad.map(filaActividad).join("")}</div>`
+        : ""
+    }`;
 }

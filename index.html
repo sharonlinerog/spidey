@@ -177,23 +177,40 @@
         <div class="menu">
           <button class="btn btn-icono" id="btn-menu" aria-haspopup="true" aria-expanded="false" aria-label="Menú de cuenta">⋯</button>
           <div class="menu-lista" id="menu-lista" hidden>
-            <span class="menu-correo" id="menu-correo"></span>
+            <button type="button" class="menu-perfil" data-accion="mi-nombre" title="Cambiar cómo apareces">
+              <span class="avatar" id="menu-avatar"></span>
+              <span class="menu-perfil-txt">
+                <b id="menu-nombre"></b>
+                <small class="menu-correo" id="menu-correo"></small>
+              </span>
+            </button>
 
-            <span class="menu-grupo">Tablero</span>
+            <!-- El estado de los recordatorios se ve sin abrir nada: es la
+                 clase de ajuste que se olvida activado o desactivado. -->
+            <button type="button" class="menu-card-recordatorios inactivo" id="mi-recordatorios" data-accion="recordatorios">
+              <span class="mcr-txt">
+                <b id="mcr-estado">Recordatorios desactivados</b>
+                <small id="mcr-nota">No recibirás avisos de vencimientos</small>
+              </span>
+              <span class="mcr-accion">Cambiar</span>
+            </button>
+
+            <span class="menu-grupo">Este tablero</span>
             <button type="button" data-accion="miembros">Miembros y permisos</button>
             <button type="button" data-accion="historial-tablero">Historial del tablero</button>
             <button type="button" data-accion="editar-tablero" id="mi-editar-tablero">Renombrar tablero</button>
             <button type="button" data-accion="nuevo-tablero">Nuevo tablero</button>
-            <button type="button" data-accion="borrar-tablero" id="mi-borrar-tablero" class="peligro">Eliminar tablero</button>
-            <button type="button" data-accion="salir-tablero" id="mi-salir-tablero" class="peligro">Salir del tablero</button>
 
-            <span class="menu-grupo">Cuenta</span>
-            <button type="button" data-accion="mi-nombre">Mi nombre</button>
-            <button type="button" data-accion="recordatorios" id="mi-recordatorios">Recordatorios…</button>
+            <span class="menu-grupo">Exportar</span>
             <button type="button" data-accion="csv">Exportar CSV</button>
             <button type="button" data-accion="json">Descargar respaldo</button>
-            <button type="button" data-accion="salir">Cerrar sesión</button>
-            <button type="button" data-accion="eliminar-cuenta" class="peligro">Eliminar mi cuenta</button>
+
+            <div class="menu-peligro">
+              <button type="button" data-accion="salir">Cerrar sesión</button>
+              <button type="button" data-accion="salir-tablero" id="mi-salir-tablero" class="peligro">Salir del tablero</button>
+              <button type="button" data-accion="borrar-tablero" id="mi-borrar-tablero" class="peligro">Eliminar tablero</button>
+              <button type="button" data-accion="eliminar-cuenta" class="peligro">Eliminar mi cuenta</button>
+            </div>
           </div>
         </div>
         <button class="btn btn-p" id="btn-nueva">+ Nueva tarea</button>

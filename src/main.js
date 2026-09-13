@@ -28,6 +28,9 @@ let cursorMes = new Date();
 let ordenLista = { campo: "vence", dir: "asc" };
 let agrupaLista = leerAjuste("spidey-agrupamiento", "estado");
 let modoCalendario = leerAjuste("spidey-calendario", "mes");
+let bandejaSoloMias = false;
+let busquedaTablero = "";
+let fijados = new Set(leerAjuste("spidey-tableros-fijados", "").split(",").filter(Boolean));
 let editandoId = null;
 let ficha = "detalles";
 let modoAcceso = "entrar";
@@ -260,7 +263,14 @@ function pintar() {
    se te vence (sale de tus tareas) y lo que hicieron los demás en el tablero
    (sale de la bitácora). */
 function pintarBandeja() {
-  const g = agruparPendientes(tareas);
+  // "Mías" se resuelve por el nombre con el que apareces: el responsable
+  // de una tarea es texto libre, no una cuenta.
+  const yo = store.miNombre().toLowerCase();
+  const visibles = bandejaSoloMias
+    ? tareas.filter((t) => (t.responsable || "").toLowerCase() === yo)
+    : tareas;
+
+  const g = agruparPendientes(visibles);
 
   // La bitácora guarda datos crudos; aquí se convierten en frases. Se hace
   // en main y no en views para que views.js no tenga que importar detalle.js
@@ -273,12 +283,17 @@ function pintarBandeja() {
     nueva: store.esNueva(f),
   }));
 
-  const total = g.total + store.actividadSinVer();
+  // El contador de la campana no se filtra: lo que hay pendiente, hay,
+  // aunque estés mirando solo lo tuyo.
+  const total = agruparPendientes(tareas).total + store.actividadSinVer();
   const cuenta = el("bandeja-cuenta");
   cuenta.textContent = total > 9 ? "9+" : String(total);
   cuenta.hidden = total === 0;
   el("btn-bandeja").classList.toggle("con-pendientes", total > 0);
-  el("bandeja-panel").innerHTML = bandeja(g, actividad);
+  el("bandeja-panel").innerHTML = bandeja(g, actividad, {
+    soloMias: bandejaSoloMias,
+    conFiltro: store.listaMiembros().length > 1,
+  });
 }
 
 /* ===================== saludo de bienvenida ===================== */
@@ -397,7 +412,12 @@ function pintarTableros(tableros, activoId) {
   const activo = tableros.find((t) => t.id === activoId) || null;
 
   el("tb-chapa").innerHTML = chapaTablero(activo, store.listaMiembros().length);
-  el("tb-panel").innerHTML = selectorTableros(tableros, activoId);
+  el("tb-panel").innerHTML = selectorTableros(tableros, activoId, {
+    busqueda: busquedaTablero,
+    fijados,
+    resumenDe: store.resumenDe,
+  });
+  pintarMenuCuenta();
 
   const propietario = activo && activo.rol === "propietario";
   const puedeEditar = store.puedoEditar();
@@ -414,6 +434,26 @@ function pintarTableros(tableros, activoId) {
   el("mover-tablero").innerHTML =
     `<option value="">Dejarla en este tablero</option>` +
     otros.map((t) => `<option value="${t.id}">${esc(t.nombre)}</option>`).join("");
+}
+
+/** Cabecera del menú de cuenta: quién eres y cómo te ven. */
+function pintarMenuCuenta() {
+  if (!usuario) return;
+  const nombre = store.miNombre();
+  el("menu-nombre").textContent = nombre;
+  el("menu-correo").textContent = usuario.email || "";
+
+  const partes = nombre.trim().split(/\s+/);
+  const ini = ((partes[0] || "?")[0] + (partes[1] ? partes[1][0] : "")).toUpperCase();
+  el("menu-avatar").textContent = ini;
+  el("menu-avatar").style.background = colorDeNombre(nombre);
+}
+
+/** El mismo tono estable por nombre que usan los avatares de las tarjetas. */
+function colorDeNombre(n) {
+  let h = 0;
+  for (let i = 0; i < n.length; i++) h = (h * 31 + n.charCodeAt(i)) % 360;
+  return `hsl(${h} 42% 42%)`;
 }
 
 /* ===================== ficha de tarea ===================== */
@@ -733,9 +773,29 @@ document.addEventListener("click", async (e) => {
     el("bandeja-panel").hidden = true;
     return;
   }
+  const fijar = e.target.closest("[data-fijar]");
+  if (fijar) {
+    const id = fijar.dataset.fijar;
+    if (fijados.has(id)) fijados.delete(id);
+    else fijados.add(id);
+    guardarAjuste("spidey-tableros-fijados", [...fijados].join(","));
+    pintarTableros(store.listaTableros(), store.tableroActual() ? store.tableroActual().id : null);
+    el("tb-panel").hidden = false;
+    return;
+  }
+
+  const bf = e.target.closest("[data-bandeja]");
+  if (bf) {
+    bandejaSoloMias = bf.dataset.bandeja === "mias";
+    pintarBandeja();
+    el("bandeja-panel").hidden = false;
+    return;
+  }
+
   const elegido = e.target.closest("[data-tablero]");
   if (elegido) {
     el("tb-panel").hidden = true;
+    busquedaTablero = "";
     cerrar();
     await store.elegirTablero(elegido.dataset.tablero);
     return;
@@ -1149,6 +1209,18 @@ document.addEventListener("drop", async (e) => {
 /* ---------- filtros ---------- */
 
 el("buscar").addEventListener("input", (e) => { filtros.q = e.target.value; pintar(); });
+
+/* La búsqueda de tableros vive dentro de un panel que se repinta, así que
+   se atiende por delegación y hay que devolverle el cursor después. */
+document.addEventListener("input", (e) => {
+  if (e.target.id !== "tb-busqueda") return;
+  busquedaTablero = e.target.value;
+  const pos = e.target.selectionStart;
+  pintarTableros(store.listaTableros(), store.tableroActual() ? store.tableroActual().id : null);
+  el("tb-panel").hidden = false;
+  const campo = el("tb-busqueda");
+  if (campo) { campo.focus(); campo.setSelectionRange(pos, pos); }
+});
 el("f-responsable").addEventListener("change", (e) => { filtros.responsable = e.target.value; pintar(); });
 el("f-etiqueta").addEventListener("change", (e) => { filtros.etiqueta = e.target.value; pintar(); });
 el("f-prioridad").addEventListener("change", (e) => { filtros.prioridad = e.target.value; pintar(); });
@@ -1177,9 +1249,23 @@ el("btn-tema").addEventListener("click", () => {
 /* ===================== recordatorios ===================== */
 
 async function refrescarBotonRecordatorios() {
-  const b = el("mi-recordatorios");
-  if (!push.soportado()) { b.textContent = "Recordatorios (no disponibles)"; return; }
-  b.textContent = (await push.activos()) ? "Recordatorios: activados" : "Recordatorios: desactivados";
+  const caja = el("mi-recordatorios");
+  const estado = el("mcr-estado");
+  const nota = el("mcr-nota");
+
+  if (!push.soportado()) {
+    caja.classList.add("inactivo");
+    estado.textContent = "Recordatorios no disponibles";
+    nota.textContent = push.motivoNoDisponible() || "Este navegador no los admite";
+    return;
+  }
+
+  const puestos = await push.activos();
+  caja.classList.toggle("inactivo", !puestos);
+  estado.textContent = puestos ? "Recordatorios activados" : "Recordatorios desactivados";
+  nota.textContent = puestos
+    ? "Un aviso diario de lo que vence, en este dispositivo"
+    : "No recibirás avisos de vencimientos";
 }
 
 async function hojaRecordatorios() {

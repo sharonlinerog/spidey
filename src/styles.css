@@ -403,10 +403,46 @@ kbd.atajo{
   background:var(--hoja);border:1px solid var(--linea-fuerte);border-radius:14px;
   box-shadow:var(--sombra-alta);padding:6px;display:flex;flex-direction:column;
 }
+.menu-perfil{
+  display:flex!important;align-items:center;gap:10px;width:100%;text-align:left;
+  padding:10px!important;border-radius:9px;border:0;background:none;cursor:pointer;
+  margin-bottom:4px;
+}
+.menu-perfil:hover{background:var(--hoja-2)}
+.menu-perfil .avatar{width:32px;height:32px;font-size:12px;flex:none}
+.menu-perfil-txt{display:flex;flex-direction:column;min-width:0}
+.menu-perfil-txt b{
+  font-family:var(--f-display);font-size:13.5px;font-weight:600;color:var(--tinta);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
 .menu-correo{
-  font-family:var(--f-dato);font-size:11px;color:var(--tinta-3);
-  padding:8px 10px;border-bottom:1px solid var(--linea);margin-bottom:4px;
-  overflow:hidden;text-overflow:ellipsis;
+  font-family:var(--f-dato);font-size:10.5px;color:var(--tinta-3);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+
+/* Tarjeta de recordatorios: el estado se ve sin abrir nada, porque es la
+   clase de ajuste que se queda olvidado en cualquiera de las dos posiciones. */
+.menu-card-recordatorios{
+  display:flex!important;align-items:center;gap:10px;width:100%;text-align:left;
+  margin:2px 0 6px;padding:9px 11px!important;border-radius:9px;cursor:pointer;
+  background:color-mix(in oklab,var(--ok) 12%,transparent);
+  border:1px solid color-mix(in oklab,var(--ok) 32%,transparent)!important;
+}
+.menu-card-recordatorios.inactivo{
+  background:var(--media-fondo);
+  border-color:rgba(232,177,76,.35)!important;
+}
+.menu-card-recordatorios:hover{border-color:var(--sello)!important}
+.mcr-txt{display:flex;flex-direction:column;min-width:0;flex:1}
+.mcr-txt b{font-size:12.5px;font-weight:600;color:var(--tinta)}
+.mcr-txt small{font-family:var(--f-dato);font-size:9.5px;color:var(--tinta-3);line-height:1.4}
+.mcr-accion{
+  font-family:var(--f-dato);font-size:10px;color:var(--sello-claro);flex:none;
+}
+
+.menu-peligro{
+  display:flex;flex-direction:column;
+  border-top:1px solid var(--linea);margin-top:6px;padding-top:4px;
 }
 .menu-lista button{
   border:0;background:none;text-align:left;padding:9px 10px;border-radius:8px;
@@ -432,11 +468,34 @@ kbd.atajo{
   box-shadow:var(--sombra-alta);padding:6px;
 }
 .bandeja-cab{
-  display:flex;align-items:baseline;justify-content:space-between;gap:10px;
+  display:flex;align-items:center;flex-wrap:wrap;gap:8px;
   padding:9px 10px 10px;border-bottom:1px solid var(--linea);margin-bottom:4px;
 }
 .bandeja-cab b{font-family:var(--f-display);font-size:14px;font-weight:600;color:var(--tinta)}
-.bandeja-cab span{font-family:var(--f-dato);font-size:11px;color:var(--tinta-3)}
+.bandeja-resumen{
+  font-family:var(--f-dato);font-size:11px;color:var(--tinta-3);
+  width:100%;order:3;
+}
+.bandeja-filtro{
+  display:flex;gap:2px;padding:2px;margin-left:auto;
+  border:1px solid var(--linea);border-radius:7px;background:var(--papel);
+}
+.bandeja-filtro button{
+  border:0;background:transparent;color:var(--tinta-3);
+  padding:4px 10px;font-size:10.5px;border-radius:5px;cursor:pointer;
+}
+.bandeja-filtro button:hover{color:var(--tinta)}
+.bandeja-filtro button[aria-selected="true"]{background:var(--sello);color:var(--sobre-sello)}
+
+/* Secciones: lo que se vence y lo que hicieron los demás son cosas
+   distintas y conviene que se lean como tales. */
+.bandeja-seccion{padding-bottom:4px}
+.bandeja-seccion h3{
+  display:flex;align-items:baseline;justify-content:space-between;gap:8px;
+  margin:10px 10px 2px;font-family:var(--f-display);font-size:11.5px;
+  font-weight:600;letter-spacing:.04em;color:var(--tinta-2);
+}
+.bandeja-seccion + .bandeja-seccion{border-top:1px solid var(--linea);margin-top:6px}
 .bandeja-vacia{margin:0;padding:22px 12px 26px;text-align:center;font-size:13.5px;color:var(--tinta-3)}
 .bandeja-grupo{padding:4px 0 6px}
 .bandeja-grupo h4{
@@ -447,6 +506,13 @@ kbd.atajo{
   width:100%;display:grid;grid-template-columns:auto minmax(0,1fr) auto;
   align-items:center;gap:9px;text-align:left;
   border:0;background:none;padding:8px 10px;border-radius:8px;cursor:pointer;
+}
+/* Lo vencido lleva una barra roja a la izquierda: se distingue de la
+   actividad sin tener que leerlo. */
+.bandeja-item.por-vencer.urgente{
+  background:color-mix(in oklab,var(--alerta) 8%,transparent);
+  border-left:2px solid var(--alerta);border-radius:0 8px 8px 0;
+  margin:0 6px;width:calc(100% - 12px);
 }
 .bandeja-item:hover{background:var(--hoja-2)}
 .bandeja-item .bi-punto{
@@ -890,17 +956,47 @@ textarea.campo{resize:vertical;min-height:76px}
   background:var(--hoja);border:1px solid var(--linea-fuerte);border-radius:14px;
   box-shadow:var(--sombra-alta);padding:6px;
 }
-.tb-lista{display:flex;flex-direction:column;gap:2px}
-.tb-item{
-  display:flex;align-items:center;gap:10px;width:100%;text-align:left;
-  border:0;background:none;padding:9px 10px;border-radius:9px;cursor:pointer;
+.tb-buscar{padding:4px 4px 8px}
+.tb-buscar .campo{width:100%;min-height:36px;font-size:12.5px}
+.tb-grupo{
+  font-family:var(--f-dato);font-size:9px;color:var(--tinta-3);
+  letter-spacing:.14em;text-transform:uppercase;padding:10px 10px 4px;
 }
-.tb-item:hover{background:var(--hoja-2)}
-.tb-item.activo{background:var(--sello-suave)}
-.tb-item.activo .tb-nombre{color:var(--sello-claro)}
-.tb-item .tb-nombre{flex:1;min-width:0}
+.tb-lista{display:flex;flex-direction:column;gap:2px}
+.tb-fila{display:flex;align-items:center;border-radius:9px}
+.tb-fila:hover{background:var(--hoja-2)}
+.tb-fila.activo{background:var(--sello-suave)}
+.tb-fila.activo .tb-nombre{color:var(--sello-claro)}
+.tb-item{
+  display:flex;align-items:center;gap:10px;flex:1;min-width:0;text-align:left;
+  border:0;background:none;padding:9px 4px 9px 10px;border-radius:9px;cursor:pointer;
+}
+.tb-txt{display:flex;flex-direction:column;min-width:0;flex:1}
+.tb-item .tb-nombre{display:block}
+.tb-meta{
+  font-family:var(--f-dato);font-size:9.5px;color:var(--tinta-3);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:1px;
+}
+/* La estrella solo se ve al pasar por encima o cuando está puesta: en
+   reposo, una columna de estrellas apagadas es ruido. */
+.tb-fijar{
+  flex:none;display:grid;place-items:center;width:30px;height:30px;margin-right:6px;
+  border:0;background:transparent;color:var(--tinta-3);border-radius:7px;cursor:pointer;
+  opacity:0;
+}
+.tb-fila:hover .tb-fijar,.tb-fijar.puesto,.tb-fijar:focus-visible{opacity:1}
+.tb-fijar.puesto{color:var(--sello)}
+.tb-fijar:hover{background:var(--hoja-3);color:var(--sello-claro)}
+@media (hover:none){.tb-fijar{opacity:1}}
+
+.tb-vacio{margin:0;padding:18px 10px;text-align:center;font-size:13px;color:var(--tinta-3)}
 .tb-pie{padding:8px 4px 4px;margin-top:4px;border-top:1px solid var(--linea)}
-.btn-ancho-suave{width:100%;justify-content:center}
+.tb-nuevo{
+  width:100%;padding:11px;border-radius:10px;cursor:pointer;
+  border:1px dashed var(--linea-fuerte);background:transparent;
+  color:var(--sello-claro);font-size:13px;font-weight:500;
+}
+.tb-nuevo:hover{background:var(--sello-suave);border-color:var(--sello)}
 @media (max-width:860px){.tb-actual{max-width:170px}}
 
 /* Grupos y acciones destructivas del menú de cuenta */
