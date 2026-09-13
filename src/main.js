@@ -813,6 +813,26 @@ async function cambiarEstado(t, estado, posicion) {
 /* ---------- arrastrar y soltar ---------- */
 
 let arrastrado = null;
+
+/**
+ * Hueco de destino: un rectángulo punteado al pie de la columna sobre la
+ * que estás. El borde de la columna ya cambiaba de color, pero con cuatro
+ * columnas juntas no siempre queda claro en cuál vas a soltar.
+ */
+function ponerHueco(col) {
+  if (col.querySelector(".drop-slot")) return;
+  quitarHuecos();
+  const hueco = document.createElement("div");
+  hueco.className = "drop-slot";
+  hueco.textContent = "— soltá aquí —";
+  const lista = col.querySelector(".lista-col");
+  if (lista) lista.appendChild(hueco);
+}
+
+function quitarHuecos() {
+  $$(".drop-slot").forEach((x) => x.remove());
+}
+
 document.addEventListener("dragstart", (e) => {
   const c = e.target.closest(".tarjeta");
   if (!c || !store.puedoEditar()) return;
@@ -825,6 +845,7 @@ document.addEventListener("dragend", (e) => {
   const c = e.target.closest(".tarjeta");
   if (c) c.classList.remove("arrastrando");
   $$(".columna.recibe").forEach((x) => x.classList.remove("recibe"));
+  quitarHuecos();
   arrastrado = null;
 });
 document.addEventListener("dragover", (e) => {
@@ -834,12 +855,21 @@ document.addEventListener("dragover", (e) => {
   e.dataTransfer.dropEffect = "move";
   $$(".columna.recibe").forEach((x) => { if (x !== col) x.classList.remove("recibe"); });
   col.classList.add("recibe");
+  ponerHueco(col);
+});
+// Salir del tablero entero (no de una columna a otra) retira el hueco.
+document.addEventListener("dragleave", (e) => {
+  if (!arrastrado) return;
+  if (e.relatedTarget && e.relatedTarget.closest && e.relatedTarget.closest(".tablero")) return;
+  $$(".columna.recibe").forEach((x) => x.classList.remove("recibe"));
+  quitarHuecos();
 });
 document.addEventListener("drop", async (e) => {
   const col = e.target.closest(".columna");
   if (!col || !arrastrado) return;
   e.preventDefault();
   col.classList.remove("recibe");
+  quitarHuecos();
   const t = tareas.find((x) => x.id === arrastrado);
   arrastrado = null;
   if (!t) return;

@@ -47,6 +47,23 @@ export function diasHasta(iso) {
   return Math.round((b - a) / 86400000);
 }
 
+/**
+ * Fecha en relación a hoy: "Hoy", "Mañana", "Ayer", "-3d", "+5d" o la
+ * fecha corta si queda lejos. Lo cercano es lo que urge, y "en 3 días"
+ * se entiende sin hacer la cuenta que pide un "15 de septiembre".
+ */
+export function fechaRelativa(iso) {
+  if (!iso) return "";
+  const dias = diasHasta(iso);
+  if (dias === null || Number.isNaN(dias)) return "";
+  if (dias === 0) return "Hoy";
+  if (dias === 1) return "Mañana";
+  if (dias === -1) return "Ayer";
+  if (dias < 0 && dias > -7) return dias + "d";
+  if (dias > 0 && dias < 7) return "+" + dias + "d";
+  return fechaCorta(iso);
+}
+
 export function fechaCorta(iso) {
   if (!iso) return "";
   const p = iso.split("-");
@@ -112,8 +129,24 @@ export function tablero(tareas, filtros, cargado, meta = SIN_META) {
 
   return `<div class="tablero">${ESTADOS.map((e) => {
     const col = porColumna(e.id, base);
+
+    // "Urgente" es lo que ya venció o vence hoy. La barra fina bajo el
+    // cabezal dice de un vistazo qué proporción de la columna lo es, y se
+    // pone roja cuando pasa de un tercio: ahí ya no es un detalle.
+    const urgentes = col.filter((t) => {
+      const d = diasHasta(t.vence);
+      return t.estado !== "hecho" && d !== null && d <= 0;
+    }).length;
+    const pct = col.length ? Math.round((urgentes / col.length) * 100) : 0;
+
     return `<div class="columna" data-estado="${e.id}">
-      <div class="col-cab"><span class="raya ${e.id}"></span><h2>${e.label}</h2><span class="cuenta">${col.length}</span></div>
+      <div class="col-cab">
+        <span class="raya ${e.id}"></span>
+        <h2>${e.label}</h2>
+        <span class="cuenta">${col.length}</span>
+        ${urgentes ? `<span class="cuenta urgente" title="${urgentes} urgente${urgentes === 1 ? "" : "s"}">${urgentes}</span>` : ""}
+      </div>
+      ${col.length ? `<div class="col-salud"><span class="col-salud-relleno${pct > 30 ? " alerta" : ""}" style="width:${pct}%"></span></div>` : ""}
       <div class="lista-col" data-drop="${e.id}">${col.map((t) => tarjeta(t, meta)).join("")}</div>
       <button class="agregar-col" data-nueva data-estado="${e.id}">+ Añadir aquí</button>
     </div>`;
@@ -147,23 +180,19 @@ function avanceHTML(t, meta) {
 
 function tarjeta(t, meta = SIN_META) {
   const i = ESTADOS.findIndex((e) => e.id === t.estado);
-  const d = diasHasta(t.vence);
   const esVenc = vencida(t);
-  const textoFecha = t.vence
-    ? esVenc
-      ? "Venció " + fechaCorta(t.vence)
-      : d === 0
-      ? "Vence hoy"
-      : d === 1
-      ? "Vence mañana"
-      : "Vence " + fechaCorta(t.vence)
+  // El texto largo se queda en el atributo title; en la tarjeta va la forma
+  // corta, que es la que cabe junto a la prioridad y las etiquetas.
+  const textoFecha = fechaRelativa(t.vence);
+  const tituloFecha = t.vence
+    ? (esVenc ? "Venció el " : "Vence el ") + fechaCorta(t.vence)
     : "";
 
   return `<article class="tarjeta${esVenc ? " urgente" : ""}${t.estado === "hecho" ? " lista-hecho" : ""}" draggable="true" data-id="${t.id}" tabindex="0">
     <div class="t-titulo">${esc(t.titulo)}</div>
     <div class="t-meta">
       <span class="chip ${t.prioridad}">${ETIQ_PRIO[t.prioridad]}</span>
-      ${t.vence ? `<span class="chip fecha${esVenc ? " vencida" : ""}">${textoFecha}</span>` : ""}
+      ${t.vence ? `<span class="chip fecha${esVenc ? " vencida" : ""}" title="${esc(tituloFecha)}">${textoFecha}</span>` : ""}
       ${(t.etiquetas || []).slice(0, 3).map((e) => `<span class="chip etiqueta">${esc(e)}</span>`).join("")}
     </div>
     ${avanceHTML(t, meta)}
