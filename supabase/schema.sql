@@ -1,12 +1,18 @@
 -- =====================================================================
 -- Spidey — esquema de base de datos (v2)
 --
--- Ejecútalo en: Supabase -> tu proyecto -> SQL Editor -> New query
--- Es idempotente: puedes volver a correrlo sin romper nada, y migra solo
--- los datos de la versión anterior (tareas sueltas por usuario) al modelo
--- nuevo de tableros compartidos.
+-- Ejecútalo ENTERO y de una sola vez en:
+--   Supabase -> tu proyecto -> SQL Editor -> New query
+--
+-- Es idempotente: puedes volver a correrlo sin romper nada. Y no borra
+-- datos: solo añade tablas, columnas y filas, y reemplaza políticas y
+-- funciones por las suyas.
+--
+-- Migra solo desde las dos versiones anteriores: la de tareas sueltas por
+-- usuario y la de tableros con `colaboradores` por correo.
 --
 -- Contenido:
+--   0. Limpiar lo que dejó la versión anterior (políticas y funciones)
 --   1. Perfiles          — nombre y correo visibles entre compañeros
 --   2. Tableros          — varios proyectos por persona
 --   3. Miembros          — quién entra a cada tablero y con qué permiso
@@ -18,13 +24,57 @@
 --   9. Historial         — bitácora automática por disparadores
 --  10. Suscripciones push
 --  11. Invitaciones por correo
---  12. Migración desde la v1
+--  12. Migración desde las versiones anteriores
 --  13. Políticas RLS
 --  14. Realtime
 --  15. Eliminar mi cuenta
 -- =====================================================================
 
 create extension if not exists "pgcrypto";
+
+-- =====================================================================
+-- 0. LIMPIAR LO QUE DEJÓ LA VERSIÓN ANTERIOR
+--
+-- Va antes que nada porque Postgres no deja reemplazar una función si
+-- cambia el nombre de sus parámetros: `create or replace` falla con
+-- "cannot change name of input parameter". Y no deja borrar una función
+-- mientras una política o un disparador dependan de ella.
+--
+-- Así que el orden es: primero las políticas, después las funciones (con
+-- cascade, que se lleva sus disparadores), y recién entonces se construye
+-- todo de nuevo. No se toca ni una fila de datos.
+-- =====================================================================
+do $$
+declare r record;
+begin
+  -- Todas las políticas de public. Las mías se recrean en la sección 13;
+  -- las que queden de antes no deben sobrevivir, porque en RLS varias
+  -- políticas permisivas se SUMAN en vez de reemplazarse, y una regla
+  -- vieja olvidada abriría un acceso que nadie pidió.
+  for r in select policyname, tablename from pg_policies where schemaname = 'public'
+  loop
+    execute format('drop policy if exists %I on public.%I', r.policyname, r.tablename);
+  end loop;
+
+  -- Las funciones que este script va a definir, con la firma que tengan.
+  -- `cascade` se lleva por delante los disparadores que las usaban; todos
+  -- los que hacen falta se vuelven a crear más abajo.
+  for r in
+    select p.oid::regprocedure as firma
+    from pg_proc p
+    join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public'
+      and p.proname in (
+        'es_miembro', 'puede_editar', 'es_propietario', 'tablero_de',
+        'invitar_a_tablero', 'eliminar_mi_cuenta', 'uuid_o_nulo',
+        'crear_perfil', 'membresia_del_creador', 'cobrar_invitaciones',
+        'tocar_actualizada', 'tocar_actualizado', 'anotar_tarea', 'anotar_hijo'
+      )
+  loop
+    execute format('drop function if exists %s cascade', r.firma);
+  end loop;
+end
+$$;
 
 -- =====================================================================
 -- 1. PERFILES
@@ -457,28 +507,7 @@ grant execute on function public.invitar_a_tablero(uuid, text, text) to authenti
 -- vería. Se ejecuta antes de crear las políticas nuevas, a propósito.
 -- =====================================================================
 -- ---------------------------------------------------------------------
--- 12.a  Retirar las políticas viejas
---
--- Va primero por dos razones. Una: las políticas de la versión anterior
--- siguen vivas y se suman a las nuevas —en RLS varias políticas permisivas
--- se suman, no se reemplazan—, así que dejarlas abriría accesos que no
--- queremos. Dos: si alguna menciona la columna `user_id`, Postgres se
--- niega a borrar esa columna mientras exista.
--- ---------------------------------------------------------------------
-do $$
-declare p record;
-begin
-  for p in
-    select policyname, tablename from pg_policies
-    where schemaname = 'public' and tablename in ('tareas','tableros')
-  loop
-    execute format('drop policy if exists %I on public.%I', p.policyname, p.tablename);
-  end loop;
-end
-$$;
-
--- ---------------------------------------------------------------------
--- 12.b  Quién entra a los tableros que ya existían
+-- 12.a  Quién entra a los tableros que ya existían
 --
 -- La versión anterior guardaba al dueño en `tableros.propietario` y a los
 -- invitados en `colaboradores`, por correo. Sin esta parte, la tabla de
@@ -524,7 +553,7 @@ end
 $$;
 
 -- ---------------------------------------------------------------------
--- 12.c  Tareas sueltas y columnas de la versión anterior
+-- 12.b  Tareas sueltas y columnas de la versión anterior
 -- ---------------------------------------------------------------------
 do $$
 declare
