@@ -844,7 +844,9 @@ tbody tr:hover .acciones-fila,
 }
 
 /* ===================== Indicadores ===================== */
-.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:20px}
+/* El min() evita que la columna mínima sea más ancha que la pantalla: sin
+   él, a 320px los paneles se salían del borde. */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(200px,100%),1fr));gap:16px;margin-bottom:20px}
 .kpi{
   padding:20px;border-radius:var(--r-g);border:1px solid var(--linea);
   background:linear-gradient(160deg,var(--hoja-2) 0%,var(--papel) 100%);
@@ -898,8 +900,9 @@ tbody tr:hover .acciones-fila,
   display:flex;justify-content:space-between;margin-top:8px;
   font-family:var(--f-dato);font-size:10.5px;color:var(--tinta-3);
 }
-.paneles{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px}
-.panel{padding:24px;border-radius:var(--r-g);border:1px solid var(--linea);background:var(--hoja)}
+.paneles{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(320px,100%),1fr));gap:16px}
+.panel{padding:24px;border-radius:var(--r-g);border:1px solid var(--linea);background:var(--hoja);min-width:0}
+@media (max-width:420px){.panel{padding:18px 16px}}
 .panel h3{font-family:var(--f-display);font-size:16px;margin:0 0 2px;font-weight:600;color:var(--tinta)}
 .panel p.sub{margin:0 0 20px;font-size:13px;color:var(--tinta-3)}
 .barras{display:flex;flex-direction:column;gap:14px}
