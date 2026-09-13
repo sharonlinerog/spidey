@@ -313,6 +313,20 @@ function saludoDelDia() {
   return "Buenas noches";
 }
 
+/** Lo que vence de aquí al domingo, y cuánto de eso ya está cerrado. */
+function progresoSemanal() {
+  const hoy = new Date();
+  const finSemana = new Date(hoy);
+  finSemana.setDate(hoy.getDate() + (7 - ((hoy.getDay() + 6) % 7) - 1));
+  const p = (n) => (n < 10 ? "0" : "") + n;
+  const limite =
+    finSemana.getFullYear() + "-" + p(finSemana.getMonth() + 1) + "-" + p(finSemana.getDate());
+
+  const deLaSemana = tareas.filter((t) => t.vence && t.vence <= limite);
+  const hechas = deLaSemana.filter((t) => t.estado === "hecho").length;
+  return { hechas, total: deLaSemana.length };
+}
+
 function pintarSaludo() {
   const caja = el("saludo");
   if (!store.tocaSaludar()) { caja.hidden = true; return; }
@@ -322,7 +336,23 @@ function pintarSaludo() {
   const activas = tareas.filter((t) => t.estado !== "hecho").length;
   const novedades = store.actividadSinVer();
 
+  const hoy = new Date();
+  const DIAS_LARGO = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
+  const MESES_LARGO = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+  el("saludo-fecha").textContent =
+    `${DIAS_LARGO[hoy.getDay()]} ${hoy.getDate()} de ${MESES_LARGO[hoy.getMonth()]}`;
+
   el("saludo-hola").textContent = saludoDelDia() + (nombre ? ", " + nombre : "") + ".";
+
+  // Barra de la semana: sólo tiene sentido si hay algo con fecha.
+  const sem = progresoSemanal();
+  el("saludo-semana").hidden = sem.total === 0;
+  if (sem.total) {
+    const pct = Math.round((sem.hechas / sem.total) * 100);
+    el("saludo-progreso").style.width = pct + "%";
+    el("saludo-semana-txt").textContent =
+      `${sem.hechas} de ${sem.total} de esta semana` + (pct === 100 ? " · completa" : "");
+  }
 
   let resumen;
   if (!tareas.length) resumen = "Este tablero está vacío. Crea tu primera tarea cuando quieras.";
@@ -426,6 +456,7 @@ function pintarTableros(tableros, activoId) {
   el("mi-borrar-tablero").hidden = !propietario;
   el("mi-salir-tablero").hidden = !!propietario || !activo;
   el("btn-nueva").hidden = !puedeEditar;
+  el("fab-nueva").hidden = !puedeEditar;
   el("aviso-lectura").hidden = puedeEditar || !activo;
 
   // Destino para "mover a otro tablero": solo donde se pueda escribir.
@@ -1229,6 +1260,8 @@ el("btn-limpiar").addEventListener("click", () => {
   el("buscar").value = ""; pintar();
 });
 el("btn-nueva").addEventListener("click", () => abrir());
+// El flotante del celular hace exactamente lo mismo que el botón de la barra.
+el("fab-nueva").addEventListener("click", () => abrir());
 
 /* ---------- tema ---------- */
 

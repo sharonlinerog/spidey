@@ -272,8 +272,13 @@
          explicarle a nadie dónde está parado. -->
     <section class="saludo" id="saludo" hidden aria-live="polite">
       <button type="button" class="icono-quitar" id="btn-cerrar-saludo" aria-label="Ocultar el saludo">×</button>
+      <p class="saludo-fecha" id="saludo-fecha"></p>
       <p class="saludo-hola" id="saludo-hola"></p>
       <p class="saludo-resumen" id="saludo-resumen"></p>
+      <div class="saludo-semana" id="saludo-semana" hidden>
+        <div class="saludo-progreso"><span class="saludo-progreso-relleno" id="saludo-progreso"></span></div>
+        <p class="saludo-semana-txt" id="saludo-semana-txt"></p>
+      </div>
       <div class="saludo-cifras" id="saludo-cifras"></div>
     </section>
 
@@ -429,6 +434,14 @@
     <div id="hoja-cuerpo"></div>
   </div>
 </div>
+
+<!-- Botón flotante de nueva tarea. Solo en el celular, y colocado abajo a
+     la derecha, que es donde alcanza el pulgar sin recolocar la mano. -->
+<button class="fab-nueva" id="fab-nueva" aria-label="Nueva tarea" title="Nueva tarea">
+  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
+    <path d="M12 5v14M5 12h14"/>
+  </svg>
+</button>
 
 <div class="brindis" id="brindis" role="status" aria-live="polite" hidden></div>
 

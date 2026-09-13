@@ -550,10 +550,31 @@ main{max-width:1560px;margin:0 auto;padding:28px 40px 64px;position:relative;ove
   :root[data-theme="light"] .pestanas{background:rgba(250,250,250,.96)}
   .pestanas button{
     flex:1;min-height:48px;padding:6px 4px;border-radius:12px;
-    font-size:11.5px;text-align:center;white-space:normal;line-height:1.2;
+    flex-direction:column;gap:3px;
+    font-size:11px;text-align:center;white-space:normal;line-height:1.2;
   }
+  .pestanas button svg{width:18px;height:18px}
   .pestanas button[aria-selected="true"]{background:var(--sello-suave);color:var(--sello-claro)}
-  main{padding-bottom:96px}
+  /* Deja sitio a la barra inferior y al botón flotante. */
+  main{padding-bottom:calc(112px + env(safe-area-inset-bottom))}
+}
+
+/* =========================================================
+   Botón flotante de nueva tarea (solo celular)
+   ========================================================= */
+.fab-nueva{display:none}
+@media (max-width:760px){
+  #btn-nueva{display:none}
+  .fab-nueva{
+    position:fixed;right:18px;bottom:calc(84px + env(safe-area-inset-bottom));
+    z-index:45;width:56px;height:56px;border-radius:50%;
+    display:grid;place-items:center;
+    background:var(--sello);color:var(--sobre-sello);border:0;
+    box-shadow:var(--sombra-sello),0 6px 20px rgba(0,0,0,.4);cursor:pointer;
+  }
+  .fab-nueva:active{background:var(--sello-hondo)}
+  /* Con la ficha o una hoja abierta estorba y compite con sus botones. */
+  .telon:not([hidden]) ~ .fab-nueva{display:none}
 }
 
 /* ===================== Tablero ===================== */
@@ -998,6 +1019,13 @@ textarea.campo{resize:vertical;min-height:76px}
 }
 .tb-nuevo:hover{background:var(--sello-suave);border-color:var(--sello)}
 @media (max-width:860px){.tb-actual{max-width:170px}}
+/* En el celular la chapa baja a su propia fila. Compartiendo línea con el
+   logo y los tres botones le quedaban 100px y el nombre salía cortado en
+   "L…"; ahí lo que hace falta saber es justamente en qué tablero estás. */
+@media (max-width:760px){
+  .tb{order:3;flex:1 1 100%;min-width:0}
+  .tb-actual{max-width:none;width:100%}
+}
 
 /* Grupos y acciones destructivas del menú de cuenta */
 .menu-grupo{
@@ -1021,24 +1049,42 @@ textarea.campo{resize:vertical;min-height:76px}
 @media (max-width:760px){.saludo{display:block}}
 
 .saludo #btn-cerrar-saludo,.saludo .icono-quitar{position:absolute;top:10px;right:10px}
+.saludo-fecha{
+  margin:0 0 4px;font-family:var(--f-dato);font-size:9.5px;color:var(--tinta-3);
+  letter-spacing:.14em;text-transform:uppercase;
+}
 .saludo-hola{
   margin:0;font-family:var(--f-display);font-size:22px;font-weight:700;
   letter-spacing:-.02em;color:var(--tinta);text-wrap:balance;padding-right:30px;
 }
 .saludo-resumen{margin:6px 0 0;font-size:14px;line-height:1.5;color:var(--tinta-2)}
-.saludo-cifras{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+
+.saludo-progreso{
+  height:6px;background:var(--hoja-3);border-radius:3px;overflow:hidden;margin:14px 0 6px;
+}
+.saludo-progreso-relleno{
+  display:block;height:100%;border-radius:3px;
+  background:linear-gradient(90deg,var(--sello),var(--sello-claro));
+}
+.saludo-semana-txt{
+  margin:0;font-family:var(--f-dato);font-size:10.5px;color:var(--tinta-3);
+}
+
+/* Tres tarjetitas en fila: la cifra grande y su etiqueta debajo. Ocupan lo
+   mismo entre ellas para que el ojo las compare de un vistazo. */
+.saludo-cifras{display:flex;gap:8px;margin-top:14px}
 .saludo-cifras:empty{display:none}
 .saludo-cifra{
-  display:inline-flex;align-items:baseline;gap:5px;
-  padding:5px 11px;border-radius:20px;
-  border:1px solid var(--linea);background:var(--hoja);
-  font-size:12.5px;color:var(--tinta-2);
+  flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:2px;
+  padding:9px 6px;border-radius:10px;
+  border:1px solid var(--linea);background:var(--hoja-2);
+  font-size:11px;color:var(--tinta-3);text-align:center;
 }
 .saludo-cifra b{
-  font-family:var(--f-display);font-size:15px;font-weight:700;color:var(--tinta);
-  font-variant-numeric:tabular-nums;
+  font-family:var(--f-display);font-size:18px;font-weight:700;color:var(--tinta);
+  font-variant-numeric:tabular-nums;line-height:1.1;
 }
-.saludo-cifra.aviso{background:var(--alerta-fondo);border-color:var(--linea-fuerte)}
+.saludo-cifra.aviso{background:var(--alerta-fondo);border-color:rgba(255,65,65,.35)}
 .saludo-cifra.aviso b,.saludo-cifra.aviso{color:var(--alerta)}
 
 /* =========================================================
