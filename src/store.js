@@ -530,7 +530,7 @@ export async function cargarMiembros() {
 
   const { data, error } = await supabase
     .from("tablero_miembros")
-    .select("user_id, rol, creado, perfiles:user_id(nombre,email)")
+    .select("user_id, rol, creado")
     .eq("tablero_id", tableroId);
 
   if (error) {
@@ -539,12 +539,26 @@ export async function cargarMiembros() {
     return;
   }
 
+  // Los perfiles se piden aparte y no incrustados. `tablero_miembros.user_id`
+  // apunta a auth.users, no a perfiles, así que PostgREST no puede deducir
+  // la relación entre ambas y un embed falla en silencio, dejando la lista
+  // de miembros vacía sin que nada lo avise.
+  const ids = (data || []).map((m) => m.user_id);
+  let porId = {};
+  if (ids.length) {
+    const { data: perfiles } = await supabase
+      .from("perfiles")
+      .select("id,nombre,email")
+      .in("id", ids);
+    for (const p of perfiles || []) porId[p.id] = p;
+  }
+
   miembros = (data || []).map((m) => ({
     user_id: m.user_id,
     rol: ROLES_VALIDOS.includes(m.rol) ? m.rol : "lector",
     creado: m.creado,
-    nombre: (m.perfiles && m.perfiles.nombre) || "",
-    email: (m.perfiles && m.perfiles.email) || "",
+    nombre: (porId[m.user_id] && porId[m.user_id].nombre) || "",
+    email: (porId[m.user_id] && porId[m.user_id].email) || "",
   }));
 
   const { data: inv } = await supabase

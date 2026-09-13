@@ -91,7 +91,24 @@ export function mensajeError(error) {
     return "Algún dato no es válido. Revisa el título y las fechas.";
   if (codigo === "42501" || texto.includes("row-level security"))
     return "No tienes permiso para hacer ese cambio en este tablero.";
-  if (codigo === "42P01")
-    return "Falta actualizar la base de datos. Ejecuta supabase/schema.sql.";
-  return "Algo falló al hablar con el servidor. Inténtalo otra vez.";
+
+  // --- la base de datos no coincide con lo que espera la app ---
+  //
+  // Estos tres casos son siempre lo mismo: alguien actualizó el código pero
+  // la base quedó a medias. Decir "algo falló" ahí obliga a abrir la consola
+  // del navegador para averiguar lo que el servidor ya dijo con claridad.
+  if (codigo === "42P01" || codigo === "PGRST205")
+    return "Falta una tabla en la base de datos. Ejecuta supabase/schema.sql en el SQL Editor.";
+  if (codigo === "42703" || codigo === "PGRST204")
+    return "A una tabla le falta una columna que la app necesita. Revisa supabase/diagnostico.sql.";
+  if (codigo === "PGRST200" || texto.includes("could not find a relationship"))
+    return "La base de datos no tiene las relaciones que la app espera. Revisa supabase/diagnostico.sql.";
+  if (codigo === "42883")
+    return "Falta una función en la base de datos. Ejecuta supabase/schema.sql completo.";
+  if (codigo === "42P17" || texto.includes("infinite recursion"))
+    return "Las políticas de seguridad quedaron en bucle. Vuelve a ejecutar supabase/schema.sql.";
+
+  // Último recurso: se muestra el código para poder buscarlo, en vez de
+  // dejar a quien lo lee sin ningún hilo del que tirar.
+  return "Algo falló al hablar con el servidor" + (codigo ? " (" + codigo + ")" : "") + ".";
 }
