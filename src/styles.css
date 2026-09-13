@@ -1009,6 +1009,115 @@ td.col-titulo .insignias{margin-top:6px}
    ========================================================= */
 .hoja-cab{display:flex;align-items:center;gap:12px}
 .hoja-cab h2{flex:1;min-width:0}
+
+/* =========================================================
+   Ficha de tarea
+   La hoja genérica conserva su relleno; la ficha lo reparte
+   entre cabezal, cuerpo y pie para que el cabezal llegue a
+   los bordes y el pie quede pegado abajo.
+   ========================================================= */
+.hoja-ficha{padding:0;gap:0;width:min(680px,100%)}
+.hoja-ficha > .ficha{padding:20px 24px;overflow:auto}
+.hoja-ficha > .fichas{margin:0 24px}
+
+.ficha-cab{
+  padding:16px 20px 16px 24px;border-bottom:1px solid var(--linea);
+  background:linear-gradient(180deg,var(--sello-suave),transparent);
+}
+.ficha-meta-top{
+  display:flex;align-items:center;gap:10px;margin-bottom:12px;
+  font-family:var(--f-dato);font-size:10px;color:var(--tinta-3);
+}
+.ficha-meta-top .sep{width:1px;height:12px;background:var(--linea);flex:none}
+.ficha-tablero,.ficha-origen{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ficha-estado-guardado{
+  margin-left:auto;display:flex;align-items:center;gap:6px;color:var(--ok);flex:none;
+}
+.ficha-estado-guardado .punto{background:var(--ok);box-shadow:none}
+.ficha-estado-guardado.guardando{color:var(--media)}
+.ficha-estado-guardado.guardando .punto{background:var(--media)}
+/* El indicador de guardado empuja al botón de cerrar hacia la derecha.
+   Cuando no se ve —tarea nueva o solo lectura— el que empuja es el botón. */
+.ficha-meta-top .icono-quitar{margin-left:12px;flex:none}
+.ficha-estado-guardado[hidden] ~ .icono-quitar{margin-left:auto}
+
+/* El título es un campo de formulario disfrazado de titular: se ve como un
+   encabezado, pero respeta el límite de 140 caracteres y no acepta
+   marcado pegado, cosas que un contenteditable no garantiza. */
+.ficha-titulo-edit{
+  display:block;width:100%;border:0;background:transparent;
+  font-family:var(--f-display);font-size:22px;font-weight:700;
+  letter-spacing:-.02em;line-height:1.25;color:var(--tinta);
+  padding:4px 6px;margin:-4px -6px;border-radius:8px;outline:none;
+}
+.ficha-titulo-edit::placeholder{color:var(--tinta-3);font-weight:600}
+.ficha-titulo-edit:focus{background:var(--hoja-2)}
+.ficha-titulo-edit:disabled{color:var(--tinta);opacity:1}
+
+.ficha-pildoras{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.pildora{
+  display:inline-flex;align-items:center;gap:6px;min-height:34px;
+  padding:0 10px;border-radius:8px;
+  background:var(--hoja-2);border:1px solid var(--linea);
+  font-size:12.5px;color:var(--tinta);max-width:100%;
+}
+.pildora:hover{border-color:var(--linea-fuerte)}
+.pildora:focus-within{border-color:var(--sello);outline:2px solid var(--sello);outline-offset:1px}
+.pildora > svg{flex:none;color:var(--tinta-3)}
+.pildora.punteada{border-style:dashed;background:transparent;color:var(--tinta-3)}
+.pildora.punteada > svg{color:var(--tinta-3)}
+.pildora select,
+.pildora input{
+  border:0;background:transparent;color:inherit;font-family:var(--f-texto);
+  font-size:12.5px;padding:7px 0;min-width:0;cursor:pointer;
+}
+.pildora input{cursor:text}
+.pildora select:focus,.pildora input:focus{outline:none}
+.pildora input::placeholder{color:var(--tinta-3)}
+.pildora [name="responsable"]{width:12ch}
+.pildora [name="etiquetas"]{width:16ch}
+.pildora [name="vence"]{width:13ch}
+.pildora .raya{width:14px}
+/* La prioridad se tiñe sola según su valor. */
+.pildora[data-valor="alta"]{background:var(--alta-fondo);border-color:var(--linea-fuerte);color:var(--alta)}
+.pildora[data-valor="media"]{background:var(--media-fondo);border-color:rgba(232,177,76,.35);color:var(--media)}
+.pildora[data-valor="baja"]{background:var(--baja-fondo);border-color:rgba(154,167,184,.3);color:var(--baja)}
+.pildora[data-valor] > svg{color:currentColor}
+
+.sub-bloque{
+  border-top:1px solid var(--linea);padding-top:16px;
+  display:flex;flex-direction:column;gap:14px;
+}
+
+.ficha-pie{
+  display:flex;gap:10px;align-items:center;flex-wrap:wrap;
+  padding:14px 24px;border-top:1px solid var(--linea);background:var(--hoja);
+  padding-bottom:calc(14px + env(safe-area-inset-bottom));
+}
+.ficha-pie .btn-borrar{border-color:transparent;color:var(--alerta);background:transparent}
+.ficha-pie .btn-borrar:hover{background:var(--alerta-fondo);border-color:var(--linea-fuerte)}
+.ficha-guardado-texto{
+  font-family:var(--f-dato);font-size:10px;color:var(--tinta-3);margin:0 auto;
+}
+.ficha-guardado-texto:empty{margin-left:auto;margin-right:auto}
+#btn-hecha{display:inline-flex;align-items:center;gap:7px}
+#btn-hecha:not(.btn-p){background:var(--hoja);color:var(--tinta);box-shadow:none}
+.ficha-contador{
+  font-family:var(--f-dato);font-size:10px;color:var(--tinta-3);margin-left:5px;
+}
+.ficha-contador:empty{display:none}
+.fichas button[aria-selected="true"] .ficha-contador{color:var(--sobre-sello)}
+
+@media (max-width:560px){
+  .hoja-ficha > .ficha{padding:16px 18px}
+  .hoja-ficha > .fichas{margin:0 18px}
+  .ficha-cab{padding:14px 14px 14px 18px}
+  .ficha-pie{padding:12px 18px;padding-bottom:calc(12px + env(safe-area-inset-bottom))}
+  .ficha-titulo-edit{font-size:19px}
+  .pildora{min-height:44px}
+  .pildora select,.pildora input{padding:12px 0}
+  .ficha-guardado-texto{width:100%;order:3;text-align:center;margin:2px 0 0}
+}
 .icono-quitar{
   flex:none;width:26px;height:26px;display:grid;place-items:center;
   border:0;border-radius:7px;background:transparent;color:var(--tinta-3);

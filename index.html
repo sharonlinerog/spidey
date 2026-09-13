@@ -270,75 +270,135 @@
 
 <!-- ===== Ficha de tarea ===== -->
 <div class="telon" id="telon" hidden>
-  <div class="hoja-form" role="dialog" aria-modal="true" aria-labelledby="form-titulo">
-    <div class="hoja-cab">
-      <h2 id="form-titulo">Nueva tarea</h2>
-      <button type="button" class="icono-quitar grande" id="btn-cerrar-form" aria-label="Cerrar">×</button>
-    </div>
+  <div class="hoja-form hoja-ficha" role="dialog" aria-modal="true" aria-labelledby="form-titulo">
 
-    <!-- Las fichas solo aparecen al editar: subtareas, comentarios y
-         adjuntos necesitan que la tarea ya exista en la base de datos. -->
-    <div class="fichas" id="fichas-tarea" role="tablist" hidden>
-      <button type="button" role="tab" data-ficha="detalles" aria-selected="true">Detalles</button>
-      <button type="button" role="tab" data-ficha="subtareas" aria-selected="false">Subtareas</button>
-      <button type="button" role="tab" data-ficha="comentarios" aria-selected="false">Comentarios</button>
-      <button type="button" role="tab" data-ficha="adjuntos" aria-selected="false">Adjuntos</button>
-      <button type="button" role="tab" data-ficha="historial" aria-selected="false">Historial</button>
-    </div>
+    <!-- Cabezal: de dónde viene la tarea, su título y sus metadatos.
+         Los campos van asociados al formulario con form="form" aunque
+         estén fuera de él, para que el cabezal no se repinte nunca y no
+         te quite el cursor mientras escribes. -->
+    <header class="ficha-cab">
+      <div class="ficha-meta-top">
+        <span class="ficha-id" id="ficha-id" hidden></span>
+        <span class="sep" id="ficha-sep-1" hidden></span>
+        <span class="ficha-tablero" id="ficha-tablero"></span>
+        <span class="sep" id="ficha-sep-2" hidden></span>
+        <span class="ficha-origen" id="ficha-origen" hidden></span>
+        <span class="ficha-estado-guardado" id="ficha-guardado" hidden>
+          <span class="punto on"></span><span id="ficha-guardado-txt">Guardado</span>
+        </span>
+        <button type="button" class="icono-quitar grande" id="btn-cerrar-form" aria-label="Cerrar">×</button>
+      </div>
 
-    <form class="ficha" id="form" data-ficha="detalles">
-      <label>Título
-        <input class="campo" name="titulo" required maxlength="140" placeholder="Ej. Enviar propuesta al cliente">
-      </label>
-      <label>Notas
-        <textarea class="campo" name="notas" maxlength="1200" placeholder="Detalles, enlaces, siguiente paso…"></textarea>
-      </label>
-      <div class="form-fila">
-        <label>Estado
-          <select class="campo" name="estado">
+      <h2 id="form-titulo" class="sr-solo">Nueva tarea</h2>
+      <input class="ficha-titulo-edit" id="titulo-grande" form="form" name="titulo" required
+             maxlength="140" placeholder="¿Qué hay que hacer?" aria-label="Título de la tarea"
+             autocomplete="off">
+
+      <!-- Metadatos como píldoras en fila, no como etiquetas apiladas.
+           Cada una es un control nativo disfrazado: así funcionan el
+           teclado, el lector de pantalla y el selector de fecha del
+           celular sin reimplementar nada. -->
+      <div class="ficha-pildoras">
+        <span class="pildora pildora-sel" data-campo="estado">
+          <span class="raya" id="pildora-raya"></span>
+          <select form="form" name="estado" aria-label="Estado">
             <option value="por_hacer">Por hacer</option>
             <option value="en_curso">En curso</option>
             <option value="en_revision">En revisión</option>
             <option value="hecho">Hecho</option>
           </select>
-        </label>
-        <label>Prioridad
-          <select class="campo" name="prioridad">
+        </span>
+
+        <span class="pildora pildora-sel" data-campo="prioridad">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M13 2 4 14h7l-1 8 9-12h-7l1-8Z"/>
+          </svg>
+          <select form="form" name="prioridad" aria-label="Prioridad">
             <option value="alta">Alta</option>
             <option value="media" selected>Media</option>
             <option value="baja">Baja</option>
           </select>
-        </label>
-      </div>
-      <div class="form-fila">
-        <label>Responsable
-          <input class="campo" name="responsable" list="lista-personas" maxlength="60" placeholder="Nombre">
-        </label>
-        <label>Fecha límite
-          <input class="campo" name="vence" type="date">
-        </label>
-      </div>
-      <datalist id="lista-personas"></datalist>
-      <label>Etiquetas
-        <input class="campo" name="etiquetas" list="lista-etiquetas" maxlength="160" placeholder="cliente-acme, facturación">
-        <span class="ayuda">Sepáralas con comas.</span>
-      </label>
-      <datalist id="lista-etiquetas"></datalist>
-      <label id="campo-mover" hidden>Mover a otro tablero
-        <select class="campo" id="mover-tablero"></select>
-        <span class="ayuda">La tarea se lleva consigo subtareas, comentarios y adjuntos.</span>
-      </label>
-      <div class="pie-form">
-        <button type="button" class="btn btn-borrar" id="btn-borrar" hidden>Eliminar</button>
-        <button type="button" class="btn" id="btn-cancelar">Cancelar</button>
-        <button type="submit" class="btn btn-p" id="btn-guardar">Guardar</button>
-      </div>
-    </form>
+        </span>
 
-    <section class="ficha" data-ficha="subtareas"  id="panel-subtareas"  hidden></section>
+        <span class="pildora" data-campo="responsable">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="8" r="3.6"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/>
+          </svg>
+          <input form="form" name="responsable" list="lista-personas" maxlength="60"
+                 placeholder="Sin responsable" aria-label="Responsable" autocomplete="off">
+        </span>
+
+        <span class="pildora" data-campo="vence">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="3" y="5" width="18" height="16" rx="2.5"/><path d="M3 10h18M8 3v4M16 3v4"/>
+          </svg>
+          <input form="form" name="vence" type="date" aria-label="Fecha límite">
+        </span>
+
+        <span class="pildora punteada" data-campo="etiquetas">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0l-7.2-7.2A2 2 0 0 1 2.8 12V4.8A2 2 0 0 1 4.8 2.8H12a2 2 0 0 1 1.4.6l7.2 7.2a2 2 0 0 1 0 2.8Z"/><circle cx="7.5" cy="7.5" r="1.2"/>
+          </svg>
+          <input form="form" name="etiquetas" list="lista-etiquetas" maxlength="160"
+                 placeholder="+ etiqueta" aria-label="Etiquetas, separadas con comas" autocomplete="off">
+        </span>
+      </div>
+
+      <datalist id="lista-personas"></datalist>
+      <datalist id="lista-etiquetas"></datalist>
+    </header>
+
+    <!-- Las pestañas solo aparecen al editar: comentarios, adjuntos e
+         historial necesitan que la tarea ya exista en la base de datos. -->
+    <div class="fichas" id="fichas-tarea" role="tablist" hidden>
+      <button type="button" role="tab" data-ficha="detalles" aria-selected="true">
+        Detalles<span class="ficha-contador" id="cont-subtareas"></span>
+      </button>
+      <button type="button" role="tab" data-ficha="comentarios" aria-selected="false">
+        Comentarios<span class="ficha-contador" id="cont-comentarios"></span>
+      </button>
+      <button type="button" role="tab" data-ficha="adjuntos" aria-selected="false">
+        Adjuntos<span class="ficha-contador" id="cont-adjuntos"></span>
+      </button>
+      <button type="button" role="tab" data-ficha="historial" aria-selected="false">Historial</button>
+    </div>
+
+    <section class="ficha" data-ficha="detalles">
+      <form id="form">
+        <label>Notas
+          <textarea class="campo" name="notas" maxlength="1200" placeholder="Detalles, enlaces, siguiente paso…"></textarea>
+        </label>
+        <label id="campo-mover" hidden>Mover a otro tablero
+          <select class="campo" id="mover-tablero"></select>
+          <span class="ayuda">La tarea se lleva consigo subtareas, comentarios y adjuntos.</span>
+        </label>
+      </form>
+
+      <!-- Las subtareas viven aquí, no en una pestaña aparte: son parte de
+           cómo se define la tarea, no un anexo. Van en su propio contenedor
+           para que repintarlas no toque el formulario de arriba. -->
+      <div class="sub-bloque" id="bloque-subtareas" hidden>
+        <h4 class="mini-titulo">Subtareas</h4>
+        <div id="panel-subtareas"></div>
+      </div>
+    </section>
+
     <section class="ficha" data-ficha="comentarios" id="panel-comentarios" hidden></section>
     <section class="ficha" data-ficha="adjuntos"   id="panel-adjuntos"   hidden></section>
     <section class="ficha" data-ficha="historial"  id="panel-historial"  hidden></section>
+
+    <footer class="ficha-pie">
+      <button type="button" class="btn btn-borrar" id="btn-borrar" hidden>Eliminar</button>
+      <span class="ficha-guardado-texto" id="ficha-pie-texto"></span>
+      <button type="button" class="btn" id="btn-cancelar">Cerrar</button>
+      <button type="button" class="btn btn-p" id="btn-hecha" hidden>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M4 12.5 9.5 18 20 6.5"/>
+        </svg>
+        <span id="btn-hecha-txt">Marcar hecha</span>
+      </button>
+      <button type="submit" class="btn btn-p" id="btn-guardar" form="form">Crear tarea</button>
+    </footer>
   </div>
 </div>
 

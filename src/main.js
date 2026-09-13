@@ -425,12 +425,11 @@ function abrir(id, estadoPorDefecto) {
 
   if (!t && !puedeEditar) return brindis("Solo puedes mirar este tablero.", true);
 
+  clearTimeout(temporizadorGuardado);
   editandoId = t ? id : null;
   ficha = "detalles";
 
   el("form-titulo").textContent = t ? (puedeEditar ? "Editar tarea" : "Ver tarea") : "Nueva tarea";
-  el("btn-borrar").hidden = !t || !puedeEditar;
-  el("btn-guardar").hidden = !puedeEditar;
 
   f.titulo.value = t ? t.titulo : "";
   f.notas.value = t ? t.notas || "" : "";
@@ -441,11 +440,14 @@ function abrir(id, estadoPorDefecto) {
   f.etiquetas.value = t ? (t.etiquetas || []).join(", ") : "";
 
   // En modo lectura los campos se ven, pero no se tocan.
-  [f.titulo, f.notas, f.estado, f.prioridad, f.responsable, f.vence, f.etiquetas].forEach((c) => {
-    c.disabled = !puedeEditar;
-  });
+  camposFicha().forEach((c) => { c.disabled = !puedeEditar; });
+
+  pintarCabezalFicha(t);
+  pintarPieFicha(t, puedeEditar);
+  pintarPildoras();
 
   el("fichas-tarea").hidden = !t;
+  el("bloque-subtareas").hidden = !t;
   pintarTableros(store.listaTableros(), store.tableroActual() ? store.tableroActual().id : null);
   pintarFichas();
 
@@ -457,13 +459,80 @@ function abrir(id, estadoPorDefecto) {
     store.cargarDetalle(t.id);
   } else {
     store.cerrarDetalle();
+    pintarContadoresFicha();
   }
 }
 
+/** Todos los controles de la ficha, estén dentro del <form> o asociados a él. */
+function camposFicha() {
+  const f = el("form");
+  return [f.titulo, f.notas, f.estado, f.prioridad, f.responsable, f.vence, f.etiquetas];
+}
+
 function cerrar() {
+  // Un cambio pendiente no puede perderse por cerrar rápido.
+  if (temporizadorGuardado) {
+    clearTimeout(temporizadorGuardado);
+    temporizadorGuardado = null;
+    if (editandoId) guardarFicha();
+  }
   el("telon").hidden = true;
   editandoId = null;
   store.cerrarDetalle();
+}
+
+/** De dónde viene la tarea: su número, su tablero y quién la creó. */
+function pintarCabezalFicha(t) {
+  const tb = store.tableroActual();
+  el("ficha-tablero").textContent = tb ? tb.nombre : "";
+
+  // Un uuid completo no le dice nada a nadie; sus primeros seis caracteres
+  // bastan para reconocer una tarea y caben en la cabecera.
+  const corto = t ? "#" + t.id.slice(0, 6) : "";
+  el("ficha-id").textContent = corto;
+  el("ficha-id").hidden = !t;
+  el("ficha-sep-1").hidden = !t;
+
+  const origen = t && t.creada
+    ? "creada " + tiempoRelativo(t.creada) + (t.creada_por ? " por " + store.nombreDe(t.creada_por) : "")
+    : "";
+  el("ficha-origen").textContent = origen;
+  el("ficha-origen").hidden = !origen;
+  el("ficha-sep-2").hidden = !origen;
+}
+
+/**
+ * El pie cambia según lo que estés haciendo. Al crear hace falta un botón
+ * explícito: si se guardara solo, abrir la ficha y cerrarla dejaría una
+ * tarea vacía por ahí. Al editar no hace falta, porque ya existe.
+ */
+function pintarPieFicha(t, puedeEditar) {
+  const editando = !!t;
+  el("btn-borrar").hidden = !editando || !puedeEditar;
+  el("btn-guardar").hidden = editando || !puedeEditar;
+  el("btn-hecha").hidden = !editando || !puedeEditar;
+  el("ficha-guardado").hidden = true;
+
+  if (editando && puedeEditar) {
+    const hecha = t.estado === "hecho";
+    el("btn-hecha-txt").textContent = hecha ? "Reabrir" : "Marcar hecha";
+    el("btn-hecha").classList.toggle("btn-p", !hecha);
+    el("ficha-pie-texto").textContent = "Los cambios se guardan solos";
+  } else if (editando) {
+    el("ficha-pie-texto").textContent = "Solo lectura";
+  } else {
+    el("ficha-pie-texto").textContent = "";
+  }
+}
+
+/** Colorea la píldora de estado y marca la de etiquetas si tiene contenido. */
+function pintarPildoras() {
+  const f = el("form");
+  el("pildora-raya").className = "raya " + f.estado.value;
+  document.querySelector('[data-campo="prioridad"]').dataset.valor = f.prioridad.value;
+  document.querySelector('[data-campo="etiquetas"]').classList.toggle("punteada", !f.etiquetas.value.trim());
+  document.querySelector('[data-campo="vence"]').classList.toggle("punteada", !f.vence.value);
+  document.querySelector('[data-campo="responsable"]').classList.toggle("punteada", !f.responsable.value.trim());
 }
 
 function pintarFichas() {
@@ -473,12 +542,76 @@ function pintarFichas() {
   $$(".hoja-form .ficha").forEach((s) => { s.hidden = s.dataset.ficha !== ficha; });
 }
 
+/** Los números junto al nombre de cada pestaña. Vacíos si no hay nada. */
+function pintarContadoresFicha() {
+  const a = editandoId ? store.avanceSubtareas(editandoId) : null;
+  const d = store.detalleActual();
+  el("cont-subtareas").textContent = a ? `${a.hechas}/${a.total}` : "";
+  el("cont-comentarios").textContent = d.comentarios.length || "";
+  el("cont-adjuntos").textContent = d.adjuntos.length || "";
+}
+
 function pintarPanelSubtareas() {
   if (!editandoId) return;
   el("panel-subtareas").innerHTML = panelSubtareas(
     store.subtareasDe(editandoId),
     store.puedoEditar()
   );
+  pintarContadoresFicha();
+}
+
+/* ---------- autoguardado ---------- */
+
+let temporizadorGuardado = null;
+
+function marcarGuardado(estado) {
+  const caja = el("ficha-guardado");
+  if (!editandoId || !store.puedoEditar()) { caja.hidden = true; return; }
+  caja.hidden = false;
+  caja.classList.toggle("guardando", estado === "guardando");
+  el("ficha-guardado-txt").textContent = estado === "guardando" ? "Guardando…" : "Guardado";
+}
+
+/**
+ * Al editar, los cambios se envían solos medio segundo después de la
+ * última tecla. Ese respiro evita mandar una escritura por carácter sin
+ * que llegue a notarse la espera.
+ */
+function programarGuardado() {
+  if (!editandoId || !store.puedoEditar()) return;
+  marcarGuardado("guardando");
+  clearTimeout(temporizadorGuardado);
+  temporizadorGuardado = setTimeout(() => {
+    temporizadorGuardado = null;
+    guardarFicha();
+  }, 500);
+}
+
+async function guardarFicha() {
+  if (!editandoId || !store.puedoEditar()) return;
+  const r = await store.guardar(tareaDelFormulario(editandoId));
+  if (!r.ok) { brindis(r.mensaje, true); marcarGuardado("guardado"); return; }
+  marcarGuardado("guardado");
+}
+
+/** Lee el formulario y devuelve la tarea lista para el store. */
+function tareaDelFormulario(id) {
+  const f = el("form");
+  const prev = tareas.find((t) => t.id === id);
+  return {
+    id: id || crypto.randomUUID(),
+    titulo: f.titulo.value.trim() || "Tarea sin título",
+    notas: f.notas.value.trim(),
+    estado: f.estado.value,
+    prioridad: f.prioridad.value,
+    responsable: f.responsable.value.trim(),
+    vence: f.vence.value,
+    etiquetas: f.etiquetas.value.split(",").map((s) => s.trim()).filter(Boolean),
+    posicion: prev ? prev.posicion : Date.now(),
+    creada: prev ? prev.creada : new Date().toISOString(),
+    completada: prev ? prev.completada : null,
+    creada_por: prev ? prev.creada_por : (usuario ? usuario.id : null),
+  };
 }
 
 function pintarPanelesDetalle() {
@@ -494,29 +627,16 @@ function pintarPanelesDetalle() {
     { cargando: d.cargando, sinConexion: d.sinConexion },
     usuario ? usuario.id : null
   );
+  pintarContadoresFicha();
 }
 
+/* Crear una tarea nueva: aquí sí hay botón y sí se cierra la ficha. */
 el("form").addEventListener("submit", async (ev) => {
   ev.preventDefault();
-  const f = ev.target;
-  const prev = tareas.find((t) => t.id === editandoId);
+  if (editandoId) return; // editando se guarda solo; el submit no aplica
+
+  const tarea = tareaDelFormulario(null);
   const destino = el("mover-tablero").value;
-
-  const tarea = {
-    id: editandoId || crypto.randomUUID(),
-    titulo: f.titulo.value.trim() || "Tarea sin título",
-    notas: f.notas.value.trim(),
-    estado: f.estado.value,
-    prioridad: f.prioridad.value,
-    responsable: f.responsable.value.trim(),
-    vence: f.vence.value,
-    etiquetas: f.etiquetas.value.split(",").map((s) => s.trim()).filter(Boolean),
-    posicion: prev ? prev.posicion : Date.now(),
-    creada: prev ? prev.creada : new Date().toISOString(),
-    completada: prev ? prev.completada : null,
-  };
-
-  const id = tarea.id;
   cerrar();
 
   const r = await store.guardar(tarea);
@@ -525,10 +645,43 @@ el("form").addEventListener("submit", async (ev) => {
   // El cambio de tablero se hace después de guardar el resto, para que la
   // tarea llegue al destino ya con sus datos nuevos.
   if (destino) {
-    const m = await store.moverATablero(id, destino);
+    const m = await store.moverATablero(tarea.id, destino);
     if (m.ok) brindis("Movida a «" + m.nombre + "».");
     else brindis(m.mensaje, true);
   }
+});
+
+/* Cualquier cambio en la ficha de una tarea existente se guarda solo. */
+["input", "change"].forEach((evento) =>
+  el("form").addEventListener(evento, (ev) => {
+    if (ev.target.id === "mover-tablero") return; // eso se decide al cerrar
+    pintarPildoras();
+    programarGuardado();
+  })
+);
+
+el("btn-hecha").addEventListener("click", async () => {
+  const f = el("form");
+  f.estado.value = f.estado.value === "hecho" ? "por_hacer" : "hecho";
+  pintarPildoras();
+  clearTimeout(temporizadorGuardado);
+  temporizadorGuardado = null;
+  marcarGuardado("guardando");
+  await guardarFicha();
+  const t = tareas.find((x) => x.id === editandoId);
+  if (t) pintarPieFicha(t, store.puedoEditar());
+});
+
+/* El destino de "mover a otro tablero" se aplica al cerrar la ficha: así
+   la tarea llega al otro tablero ya con todos sus cambios guardados. */
+el("mover-tablero").addEventListener("change", async (ev) => {
+  const destino = ev.target.value;
+  if (!destino || !editandoId) return;
+  const id = editandoId;
+  ev.target.value = "";
+  cerrar();
+  const m = await store.moverATablero(id, destino);
+  brindis(m.ok ? "Movida a «" + m.nombre + "»." : m.mensaje, !m.ok);
 });
 
 el("btn-cancelar").addEventListener("click", cerrar);
