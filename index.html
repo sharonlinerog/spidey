@@ -136,10 +136,30 @@
       </div>
 
       <div class="pestanas" role="tablist">
-        <button role="tab" data-vista="tablero" aria-selected="true">Tablero</button>
-        <button role="tab" data-vista="lista" aria-selected="false">Lista</button>
-        <button role="tab" data-vista="calendario" aria-selected="false">Calendario</button>
-        <button role="tab" data-vista="indicadores" aria-selected="false">Indicadores</button>
+        <button role="tab" data-vista="tablero" aria-selected="true">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true">
+            <rect x="3" y="4" width="5" height="16" rx="1.5"/><rect x="9.5" y="4" width="5" height="11" rx="1.5"/><rect x="16" y="4" width="5" height="7" rx="1.5"/>
+          </svg>
+          <span>Tablero</span>
+        </button>
+        <button role="tab" data-vista="lista" aria-selected="false">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+            <path d="M4 6h16M4 12h16M4 18h10"/>
+          </svg>
+          <span>Lista</span>
+        </button>
+        <button role="tab" data-vista="calendario" aria-selected="false">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="3" y="5" width="18" height="16" rx="2.5"/><path d="M3 10h18M8 3v4M16 3v4"/>
+          </svg>
+          <span>Calendario</span>
+        </button>
+        <button role="tab" data-vista="indicadores" aria-selected="false">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+            <path d="M5 20v-6M12 20V7M19 20v-9"/>
+          </svg>
+          <span>Indicadores</span>
+        </button>
       </div>
 
       <div class="acciones">
@@ -180,17 +200,41 @@
       </div>
     </div>
     <div class="filtros">
-      <input class="campo" id="buscar" type="search" placeholder="Buscar por título, nota o etiqueta…" aria-label="Buscar tareas">
-      <select class="campo" id="f-responsable" aria-label="Filtrar por responsable"><option value="">Todos los responsables</option></select>
-      <select class="campo" id="f-etiqueta" aria-label="Filtrar por etiqueta"><option value="">Todas las etiquetas</option></select>
-      <select class="campo" id="f-prioridad" aria-label="Filtrar por prioridad">
-        <option value="">Toda prioridad</option>
-        <option value="alta">Alta</option>
-        <option value="media">Media</option>
-        <option value="baja">Baja</option>
-      </select>
-      <button class="btn" id="btn-limpiar" hidden>Limpiar filtros</button>
-      <div class="estado-nube"><span class="punto" id="punto"></span><span id="texto-nube">Conectando…</span></div>
+      <div class="busqueda">
+        <input class="campo" id="buscar" type="search" placeholder="Buscar por título, nota o etiqueta…" aria-label="Buscar tareas">
+        <kbd class="atajo" id="atajo-buscar">Ctrl K</kbd>
+      </div>
+
+      <!-- Un filtro sin usar es una invitación ("+ responsable"); uno aplicado
+           es un chip pleno con su × para quitarlo. El <select> sigue siendo
+           nativo por debajo: es lo que mejor funciona con teclado y en el
+           celular, y lo que ya sabe leer un lector de pantalla. -->
+      <div class="filtros-chips">
+        <span class="chip-filtro sin-poner" data-chip="responsable">
+          <select id="f-responsable" aria-label="Filtrar por responsable"><option value="">+ responsable</option></select>
+          <button type="button" class="chip-x" data-limpiar-filtro="responsable" hidden aria-label="Quitar el filtro de responsable">×</button>
+        </span>
+        <span class="chip-filtro sin-poner" data-chip="etiqueta">
+          <select id="f-etiqueta" aria-label="Filtrar por etiqueta"><option value="">+ etiqueta</option></select>
+          <button type="button" class="chip-x" data-limpiar-filtro="etiqueta" hidden aria-label="Quitar el filtro de etiqueta">×</button>
+        </span>
+        <span class="chip-filtro sin-poner" data-chip="prioridad">
+          <select id="f-prioridad" aria-label="Filtrar por prioridad">
+            <option value="">+ prioridad</option>
+            <option value="alta">Alta</option>
+            <option value="media">Media</option>
+            <option value="baja">Baja</option>
+          </select>
+          <button type="button" class="chip-x" data-limpiar-filtro="prioridad" hidden aria-label="Quitar el filtro de prioridad">×</button>
+        </span>
+        <button class="btn btn-limpiar-todo" id="btn-limpiar" hidden>Limpiar todo</button>
+      </div>
+
+      <div class="estado-nube">
+        <span class="punto" id="punto"></span>
+        <span id="texto-nube">Conectando…</span>
+        <span class="contador-tareas" id="contador-tareas"></span>
+      </div>
     </div>
   </header>
 

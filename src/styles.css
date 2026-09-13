@@ -313,9 +313,12 @@ select.campo{cursor:pointer}
   border:1px solid var(--linea);background:var(--hoja);overflow-x:auto;
 }
 .pestanas button{
-  border:0;background:transparent;padding:8px 16px;border-radius:8px;
+  display:inline-flex;align-items:center;gap:6px;
+  border:0;background:transparent;padding:8px 14px;border-radius:8px;
   font-weight:500;font-size:14px;color:var(--tinta-3);cursor:pointer;white-space:nowrap;
 }
+.pestanas button svg{flex:none;opacity:.8}
+.pestanas button[aria-selected="true"] svg{opacity:1}
 .pestanas button:hover{color:var(--tinta)}
 .pestanas button[aria-selected="true"]{background:var(--sello);color:var(--sobre-sello)}
 
@@ -326,16 +329,68 @@ select.campo{cursor:pointer}
 }
 @media (max-width:760px){
   .filtros{padding:0 20px 14px;gap:8px}
-  .filtros .campo{flex:1 1 140px}
-  #buscar{flex:1 1 100%;max-width:none}
+  .busqueda{flex:1 1 100%;max-width:none}
+  .filtros-chips{width:100%}
   .estado-nube{margin-left:0;width:100%;justify-content:flex-end}
 }
-#buscar{flex:1 1 240px;max-width:340px;min-height:40px}
-.filtros .campo{min-height:40px}
+
+/* ---- buscador con su atajo ---- */
+.busqueda{position:relative;display:flex;align-items:center;flex:1 1 240px;max-width:340px}
+#buscar{width:100%;min-height:42px;padding-right:60px}
+kbd.atajo{
+  font-family:var(--f-dato);font-size:10px;padding:2px 6px;
+  border:1px solid var(--linea);border-radius:4px;color:var(--tinta-3);background:var(--papel);
+}
+.busqueda kbd.atajo{position:absolute;right:10px;pointer-events:none}
+/* Al escribir, el atajo estorba: ya estás donde te llevaba. */
+.busqueda:focus-within kbd.atajo{opacity:0}
+
+/* ---- filtros como chips ---- */
+.filtros-chips{
+  display:flex;gap:8px;flex-wrap:wrap;align-items:center;
+  padding:6px;border-radius:12px;
+  background:color-mix(in oklab,var(--hoja) 60%,transparent);
+  border:1px solid var(--linea);
+}
+.chip-filtro{
+  display:inline-flex;align-items:center;gap:2px;
+  min-height:38px;padding:0 4px 0 12px;border-radius:9px;font-size:12.5px;
+}
+.chip-filtro.sin-poner{border:1px dashed var(--linea-fuerte);color:var(--tinta-3);background:transparent}
+.chip-filtro.aplicado{border:1px solid var(--linea-fuerte);background:var(--sello-suave);color:var(--sello-claro)}
+.chip-filtro:hover{border-color:var(--sello)}
+/* El <select> se vuelve invisible como control y hereda el aspecto del chip;
+   sigue siendo el mismo elemento nativo para el teclado y el celular. */
+.chip-filtro select{
+  border:0;background:transparent;color:inherit;cursor:pointer;
+  font-family:var(--f-texto);font-size:12.5px;padding:8px 4px 8px 0;
+  min-width:0;max-width:170px;
+}
+.chip-filtro select:focus{outline:none}
+.chip-filtro:focus-within{outline:2px solid var(--sello);outline-offset:2px}
+.chip-x{
+  border:0;background:transparent;color:var(--tinta-3);cursor:pointer;
+  font-size:15px;line-height:1;padding:6px 6px;border-radius:6px;
+}
+.chip-x:hover{color:var(--sello);background:var(--sello-suave)}
+.btn-limpiar-todo{min-height:38px;padding:0 12px;font-size:12.5px}
+
+/* En el celular se toca con el dedo, no con un puntero: 44px es el mínimo
+   que se acierta sin mirar. */
+@media (max-width:760px){
+  .chip-filtro,.btn-limpiar-todo{min-height:44px}
+  .chip-filtro select{padding-top:11px;padding-bottom:11px}
+  .chip-x{padding:9px 8px}
+}
 .estado-nube{
   margin-left:auto;display:flex;align-items:center;gap:9px;
   font-family:var(--f-dato);font-size:12px;letter-spacing:.06em;color:var(--tinta-3);
 }
+.contador-tareas{
+  font-family:var(--f-dato);font-size:11px;color:var(--tinta-3);
+  padding-left:12px;margin-left:2px;border-left:1px solid var(--linea);
+}
+.contador-tareas:empty{display:none}
 .punto{width:7px;height:7px;border-radius:50%;background:var(--tinta-3);flex:none}
 .punto.on{background:var(--sello);box-shadow:0 0 10px rgba(211,0,0,.8)}
 .punto.off{background:var(--media)}
@@ -657,14 +712,21 @@ textarea.campo{resize:vertical;min-height:76px}
    ========================================================= */
 .tb{position:relative}
 .tb-actual{
-  display:flex;align-items:center;gap:9px;max-width:260px;
+  display:flex;align-items:center;gap:9px;max-width:260px;min-height:44px;
   border:1px solid var(--linea-fuerte);background:var(--hoja);color:var(--tinta);
-  padding:7px 12px;border-radius:10px;cursor:pointer;font-size:13.5px;
+  padding:6px 12px;border-radius:10px;cursor:pointer;font-size:13.5px;line-height:1.15;
+  text-align:left;
 }
 .tb-actual:hover{border-color:var(--sello)}
 .tb-actual > span:first-child{display:flex;align-items:center;gap:9px;min-width:0}
 .tb-actual svg{flex:none;color:var(--tinta-3)}
 .tb-color{width:9px;height:9px;border-radius:3px;flex:none;display:inline-block}
+.tb-actual-txt{display:flex;flex-direction:column;min-width:0}
+.tb-actual-meta{
+  display:block;font-family:var(--f-dato);font-size:9px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--tinta-3);margin-top:2px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
 .tb-actual-nombre,.tb-nombre{
   font-family:var(--f-display);font-weight:600;font-size:13.5px;color:var(--tinta);
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;

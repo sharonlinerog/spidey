@@ -409,6 +409,9 @@ export async function elegirTablero(id, opciones = {}) {
   desuscribir();
   await sincronizar();
   await cargarMiembros();
+  // Otra vez, ya con los miembros contados: la chapa de la cabecera muestra
+  // cuánta gente comparte el tablero y en el primer aviso todavía no se sabía.
+  alCambiarTableros(tableros, tableroId);
   suscribir();
 }
 
@@ -593,7 +596,7 @@ export async function sincronizar() {
   const pendientes = leerLocal(claveSalida(), []).length;
   alEstado(
     pendientes ? "offline" : "on",
-    pendientes ? pendientes + " cambio(s) por enviar" : "Guardado en la nube"
+    pendientes ? pendientes + " cambio(s) por enviar" : "En vivo"
   );
   alCambiar(tareas, { desdeCache: false });
 }
@@ -777,7 +780,7 @@ export async function vaciarSalida() {
     restantes.length ? "mal" : "on",
     restantes.length
       ? "No se pudieron enviar " + restantes.length + " cambio(s)"
-      : "Guardado en la nube"
+      : "En vivo"
   );
 }
 
@@ -804,7 +807,7 @@ export async function guardar(tarea) {
     encolar({ tipo: "guardar", id: t.id, datos });
     return { ok: false, mensaje: mensajeError(error) };
   }
-  alEstado("on", "Guardado en la nube");
+  alEstado("on", "En vivo");
   return { ok: true };
 }
 
@@ -827,7 +830,7 @@ export async function eliminar(id) {
     encolar({ tipo: "borrar", id });
     return { ok: false, mensaje: mensajeError(error) };
   }
-  alEstado("on", "Guardado en la nube");
+  alEstado("on", "En vivo");
   return { ok: true };
 }
 

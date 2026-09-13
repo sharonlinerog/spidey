@@ -98,12 +98,22 @@ export function selectorTableros(tableros, activoId) {
     </div>`;
 }
 
-/** Nombre y color del tablero activo, para la cabecera. */
-export function chapaTablero(tablero) {
-  if (!tablero) return "Sin tablero";
+/**
+ * Nombre del tablero activo más su contexto: en qué papel estás y con
+ * cuánta gente lo compartes. Antes solo iba el nombre, y con varios
+ * tableros abiertos no había forma de saber en cuál puedes escribir.
+ */
+export function chapaTablero(tablero, miembros = 0) {
+  if (!tablero) return `<span class="tb-actual-nombre">Sin tablero</span>`;
+
+  const meta = [ETIQ_ROL[tablero.rol]];
+  if (miembros > 1) meta.push(miembros + " miembros");
+
   return `<span class="tb-color" style="background:${esc(tablero.color)}"></span>
-    <span class="tb-actual-nombre">${esc(tablero.nombre)}</span>
-    ${tablero.rol !== "propietario" ? `<span class="tb-rol">${ETIQ_ROL[tablero.rol]}</span>` : ""}`;
+    <span class="tb-actual-txt">
+      <b class="tb-actual-nombre">${esc(tablero.nombre)}</b>
+      <small class="tb-actual-meta">${meta.join(" · ")}</small>
+    </span>`;
 }
 
 /* ===================== miembros ===================== */

@@ -211,6 +211,8 @@ function pintar() {
   );
   el("btn-limpiar").hidden = !(filtros.q || filtros.responsable || filtros.etiqueta || filtros.prioridad);
   sincronizarSelects();
+  pintarChipsFiltro();
+  pintarContadorTareas();
 
   if (vista === "tablero") el("vista-tablero").innerHTML = tablero(tareas, filtros, cargado, meta);
   else if (vista === "lista") el("vista-lista").innerHTML = listaTabla(tareas, filtros, ordenLista, meta);
@@ -310,9 +312,45 @@ el("btn-cerrar-saludo").addEventListener("click", () => {
   el("saludo").hidden = true;
 });
 
+/* ===================== filtros como chips ===================== */
+
+/**
+ * Un filtro sin usar se ve como una invitación de borde punteado
+ * («+ responsable»); uno aplicado, como un chip pleno con su × para
+ * quitarlo. Debajo sigue habiendo un <select> nativo: es lo que mejor
+ * funciona con teclado y en el celular.
+ */
+function pintarChipsFiltro() {
+  [
+    ["responsable", "+ responsable"],
+    ["etiqueta", "+ etiqueta"],
+    ["prioridad", "+ prioridad"],
+  ].forEach(([campo, vacio]) => {
+    const chip = document.querySelector(`[data-chip="${campo}"]`);
+    if (!chip) return;
+    const puesto = !!filtros[campo];
+    chip.classList.toggle("aplicado", puesto);
+    chip.classList.toggle("sin-poner", !puesto);
+    chip.querySelector(".chip-x").hidden = !puesto;
+    const primera = chip.querySelector("select option[value='']");
+    if (primera) primera.textContent = vacio;
+  });
+}
+
+/** "12 tareas · 3 vencen hoy" junto al estado de conexión. */
+function pintarContadorTareas() {
+  const activas = tareas.filter((t) => t.estado !== "hecho");
+  const hoy = hoyISO();
+  const deHoy = activas.filter((t) => t.vence === hoy).length;
+
+  const partes = [activas.length + (activas.length === 1 ? " tarea" : " tareas")];
+  if (deHoy) partes.push(deHoy + (deHoy === 1 ? " vence hoy" : " vencen hoy"));
+  el("contador-tareas").textContent = tareas.length ? partes.join(" · ") : "";
+}
+
 function sincronizarSelects() {
-  llenar("f-responsable", personas(tareas), filtros.responsable, "Todos los responsables");
-  llenar("f-etiqueta", etiquetas(tareas), filtros.etiqueta, "Todas las etiquetas");
+  llenar("f-responsable", personas(tareas), filtros.responsable, "+ responsable");
+  llenar("f-etiqueta", etiquetas(tareas), filtros.etiqueta, "+ etiqueta");
   el("lista-personas").innerHTML = personas(tareas).map((p) => `<option value="${esc(p)}">`).join("");
   el("lista-etiquetas").innerHTML = etiquetas(tareas).map((p) => `<option value="${esc(p)}">`).join("");
 }
@@ -330,7 +368,7 @@ function llenar(id, items, valor, textoVacio) {
 function pintarTableros(tableros, activoId) {
   const activo = tableros.find((t) => t.id === activoId) || null;
 
-  el("tb-chapa").innerHTML = chapaTablero(activo);
+  el("tb-chapa").innerHTML = chapaTablero(activo, store.listaMiembros().length);
   el("tb-panel").innerHTML = selectorTableros(tableros, activoId);
 
   const propietario = activo && activo.rol === "propietario";
@@ -548,6 +586,13 @@ document.addEventListener("click", async (e) => {
   }
   if (!e.target.closest(".menu")) el("menu-lista").hidden = true;
 
+  const quitarFiltro = e.target.closest("[data-limpiar-filtro]");
+  if (quitarFiltro) {
+    filtros[quitarFiltro.dataset.limpiarFiltro] = "";
+    pintar();
+    return;
+  }
+
   const accion = e.target.closest("[data-accion]");
   if (accion) { el("menu-lista").hidden = true; el("tb-panel").hidden = true; await ejecutarAccion(accion.dataset.accion); return; }
 
@@ -714,7 +759,23 @@ document.addEventListener("change", async (e) => {
   }
 });
 
+/** ¿El foco está dentro de algo donde la persona está escribiendo? */
+function escribiendo() {
+  const a = document.activeElement;
+  if (!a) return false;
+  return ["INPUT", "TEXTAREA", "SELECT"].includes(a.tagName) || a.isContentEditable;
+}
+
 document.addEventListener("keydown", (e) => {
+  // Ctrl/⌘+K lleva el foco a la búsqueda desde cualquier parte, incluso
+  // mientras se escribe en otro campo: es el atajo que todo el mundo espera.
+  if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+    e.preventDefault();
+    el("buscar").focus();
+    el("buscar").select();
+    return;
+  }
+
   if (e.key === "Escape") {
     if (!el("tb-panel").hidden) { el("tb-panel").hidden = true; return; }
     if (!el("bandeja-panel").hidden) { el("bandeja-panel").hidden = true; return; }
@@ -724,12 +785,16 @@ document.addEventListener("keydown", (e) => {
   if (e.key === "Enter" && e.target.classList && e.target.classList.contains("tarjeta")) {
     e.preventDefault(); abrir(e.target.dataset.id);
   }
-  if (e.key === "n" && !e.metaKey && !e.ctrlKey && usuario &&
-      el("telon").hidden && el("telon-hoja").hidden &&
-      !["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement.tagName)) {
+  if (e.key.toLowerCase() === "n" && !e.metaKey && !e.ctrlKey && !e.altKey && usuario &&
+      el("telon").hidden && el("telon-hoja").hidden && !escribiendo()) {
     e.preventDefault(); abrir();
   }
 });
+
+// El atajo se anuncia con el símbolo de la plataforma: en Mac nadie busca "Ctrl".
+if (/Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent)) {
+  el("atajo-buscar").textContent = "⌘K";
+}
 
 async function moverRelativo(id, paso) {
   const t = tareas.find((x) => x.id === id);
