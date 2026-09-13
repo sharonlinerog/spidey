@@ -176,9 +176,14 @@ export function chapaTablero(tablero, miembros = 0) {
 
 /* ===================== miembros ===================== */
 
-export function panelMiembros(tablero, miembros, invitaciones, yoId) {
+/**
+ * `opciones`: { tareasDe(userId) } para decir cuánto tiene asignado cada
+ * persona. Sin eso, la lista dice quién entra pero no quién trabaja.
+ */
+export function panelMiembros(tablero, miembros, invitaciones, yoId, opciones = {}) {
   if (!tablero) return "";
   const propietario = tablero.rol === "propietario";
+  const tareasDe = opciones.tareasDe || (() => 0);
 
   const filas = [...miembros]
     .sort((a, b) => {
@@ -188,11 +193,15 @@ export function panelMiembros(tablero, miembros, invitaciones, yoId) {
     .map((m) => {
       const soyYo = m.user_id === yoId;
       const nombre = m.nombre || m.email || "Sin nombre";
+      const n = tareasDe(nombre);
+      const meta = [m.email];
+      if (n) meta.push(n === 1 ? "1 tarea asignada" : n + " tareas asignadas");
+
       return `<li class="miembro">
         ${avatarDe(nombre)}
         <span class="miembro-datos">
-          <b>${esc(nombre)}${soyYo ? " (tú)" : ""}</b>
-          <small>${esc(m.email)}</small>
+          <b>${esc(nombre)}${soyYo ? ' <span class="chip tu">Tú</span>' : ""}</b>
+          <small class="miembro-meta">${esc(meta.join(" · "))}</small>
         </span>
         ${
           propietario && !soyYo && m.rol !== "propietario"
@@ -213,29 +222,50 @@ export function panelMiembros(tablero, miembros, invitaciones, yoId) {
          .map(
            (i) => `<li class="miembro pendiente">
              <span class="avatar avatar-vacio">?</span>
-             <span class="miembro-datos"><b>${esc(i.email)}</b><small>Esperando que se registre · ${ETIQ_ROL[i.rol]}</small></span>
-             ${propietario ? `<button type="button" class="icono-quitar" data-cancelar-invitacion="${i.id}" aria-label="Cancelar invitación">×</button>` : ""}
+             <span class="miembro-datos">
+               <b>${esc(i.email)}</b>
+               <small class="miembro-meta">Esperando que se registre · ${ETIQ_ROL[i.rol]}</small>
+             </span>
+             ${propietario ? `<button type="button" class="icono-quitar" data-cancelar-invitacion="${i.id}" aria-label="Cancelar la invitación de ${esc(i.email)}">×</button>` : ""}
            </li>`
          )
          .join("")}</ul>`
     : "";
 
-  return `<h4 class="mini-titulo">Quién entra a «${esc(tablero.nombre)}»</h4>
+  const cuenta = [
+    miembros.length + (miembros.length === 1 ? " activa" : " activas"),
+    invitaciones.length ? invitaciones.length + " pendiente" + (invitaciones.length === 1 ? "" : "s") : "",
+  ].filter(Boolean).join(" · ");
+
+  return `<h3 class="miembros-titulo">Personas con acceso</h3>
+    <p class="miembros-sub">${esc(cuenta)} en «${esc(tablero.nombre)}»</p>
+
     <ul class="miembros">${filas}</ul>
     ${pendientes}
+
     ${
       propietario
-        ? `<form class="invitar" id="form-invitar">
-             <input class="campo" name="email" type="email" placeholder="correo@ejemplo.com" required aria-label="Correo de quien invitas">
-             <select class="campo" name="rol" aria-label="Rol">
-               <option value="editor">Editor</option>
-               <option value="lector">Solo lectura</option>
-             </select>
-             <button type="submit" class="btn btn-p">Invitar</button>
-           </form>
-           <p class="ayuda">Si aún no tiene cuenta, la invitación queda guardada y se aplica sola cuando se registre con ese correo.</p>`
+        ? `<div class="invitar-card">
+             <h4 class="mini-titulo">Invitar por correo</h4>
+             <form class="invitar" id="form-invitar">
+               <input class="campo" name="email" placeholder="correo@ejemplo.com, otro@ejemplo.com"
+                      required aria-label="Correos de quienes invitas">
+               <select class="campo" name="rol" aria-label="Rol con el que entran">
+                 <option value="editor">Editor</option>
+                 <option value="lector">Solo lectura</option>
+               </select>
+               <button type="submit" class="btn btn-p">Invitar</button>
+             </form>
+             <p class="ayuda">Puedes escribir varios correos separados por comas. Si alguien aún no tiene cuenta, la invitación queda guardada y se aplica sola cuando se registre.</p>
+           </div>`
         : `<p class="ayuda">Solo el propietario del tablero puede invitar o quitar personas.</p>`
-    }`;
+    }
+
+    <div class="roles-resumen">
+      <div><b>Propietario</b>Renombra, invita, cambia permisos y elimina el tablero.</div>
+      <div><b>Editor</b>Crea y modifica tareas, subtareas, comentarios y adjuntos.</div>
+      <div><b>Solo lectura</b>Ve el tablero y comenta. No toca las tareas.</div>
+    </div>`;
 }
 
 /* ===================== subtareas ===================== */

@@ -786,7 +786,17 @@ function pintarHojaMiembros() {
       store.tableroActual(),
       store.listaMiembros(),
       store.listaInvitaciones(),
-      usuario ? usuario.id : null
+      usuario ? usuario.id : null,
+      {
+        // El responsable de una tarea es texto libre, así que se cruza por
+        // nombre. Es lo mismo que hace el filtro de responsable.
+        tareasDe: (nombre) => {
+          const n = nombre.toLowerCase();
+          return tareas.filter(
+            (t) => t.estado !== "hecho" && (t.responsable || "").toLowerCase() === n
+          ).length;
+        },
+      }
     )
   );
 }
@@ -1023,17 +1033,32 @@ document.addEventListener("submit", async (e) => {
   if (f.id === "form-invitar") {
     e.preventDefault();
     const boton = f.querySelector("button");
+
+    // Invitar a un equipo entero de a un correo por vez es tedioso; se
+    // aceptan varios separados por comas y se envían uno tras otro.
+    const correos = f.email.value.split(",").map((s) => s.trim()).filter(Boolean);
+    if (!correos.length) return brindis("Escribe al menos un correo.", true);
+
     boton.disabled = true;
-    const r = await store.invitar(f.email.value, f.rol.value);
+    const fallos = [];
+    let agregados = 0, pendientes = 0;
+
+    for (const correo of correos) {
+      const r = await store.invitar(correo, f.rol.value);
+      if (!r.ok) fallos.push(correo + ": " + r.mensaje);
+      else if (r.resultado === "pendiente") pendientes++;
+      else if (r.resultado === "agregado") agregados++;
+    }
     boton.disabled = false;
-    if (!r.ok) return brindis(r.mensaje, true);
-    brindis(
-      r.resultado === "pendiente"
-        ? "Invitación guardada. Se aplicará cuando esa persona cree su cuenta."
-        : r.resultado === "ya_estaba"
-        ? "Esa persona ya estaba en el tablero."
-        : "Listo, ya tiene acceso al tablero."
-    );
+
+    if (fallos.length === correos.length) return brindis(fallos[0], true);
+
+    const partes = [];
+    if (agregados) partes.push(agregados === 1 ? "1 persona añadida" : agregados + " personas añadidas");
+    if (pendientes) partes.push(pendientes === 1 ? "1 invitación pendiente" : pendientes + " invitaciones pendientes");
+    if (fallos.length) partes.push(fallos.length + " con error");
+    brindis(partes.join(" · ") || "Sin cambios.", fallos.length > 0);
+
     pintarHojaMiembros();
     return;
   }
