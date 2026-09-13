@@ -27,6 +27,7 @@ let filtros = { q: "", responsable: "", etiqueta: "", prioridad: "" };
 let cursorMes = new Date();
 let ordenLista = { campo: "vence", dir: "asc" };
 let agrupaLista = leerAjuste("spidey-agrupamiento", "estado");
+let modoCalendario = leerAjuste("spidey-calendario", "mes");
 let editandoId = null;
 let ficha = "detalles";
 let modoAcceso = "entrar";
@@ -241,7 +242,7 @@ function pintar() {
 
   if (vista === "tablero") el("vista-tablero").innerHTML = tablero(tareas, filtros, cargado, meta);
   else if (vista === "lista") el("vista-lista").innerHTML = listaTabla(tareas, filtros, ordenLista, meta, agrupaLista);
-  else if (vista === "calendario") el("vista-calendario").innerHTML = calendario(tareas, filtros, cursorMes);
+  else if (vista === "calendario") el("vista-calendario").innerHTML = calendario(tareas, filtros, cursorMes, modoCalendario);
   else el("vista-indicadores").innerHTML = indicadores(tareas, filtros);
 
   pintarBandeja();
@@ -706,10 +707,26 @@ document.addEventListener("click", async (e) => {
     pintar(); return;
   }
 
+  const cal = e.target.closest("[data-cal]");
+  if (cal) {
+    modoCalendario = cal.dataset.cal;
+    guardarAjuste("spidey-calendario", modoCalendario);
+    pintar();
+    return;
+  }
+
   const ms = e.target.closest("[data-mes]");
   if (ms) {
     const n = parseInt(ms.dataset.mes, 10);
-    cursorMes = n === 0 ? new Date() : new Date(cursorMes.getFullYear(), cursorMes.getMonth() + n, 1);
+    if (n === 0) cursorMes = new Date();
+    else if (modoCalendario === "semana") {
+      // En vista de semana, las flechas mueven siete días, no un mes.
+      const d = new Date(cursorMes);
+      d.setDate(d.getDate() + n * 7);
+      cursorMes = d;
+    } else {
+      cursorMes = new Date(cursorMes.getFullYear(), cursorMes.getMonth() + n, 1);
+    }
     pintar(); return;
   }
 

@@ -323,13 +323,35 @@ export function listaTabla(tareas, filtros, orden, meta = SIN_META, agrupar = "e
 
 /* ---------------- calendario ---------------- */
 
-export function calendario(tareas, filtros, cursor) {
+/** Color de la franja según la prioridad, para el resumen de una celda llena. */
+const COLOR_PRIO = { alta: "var(--alta)", media: "var(--media)", baja: "var(--baja)" };
+
+/**
+ * Cuando en una celda no caben todas las tareas, en vez de recortarlas y
+ * mentir, se muestran las primeras y al pie una franja con el color de
+ * cada una de las restantes. Así el día "lleno" se sigue leyendo como lleno.
+ */
+function franjaPrioridades(tareas) {
+  if (!tareas.length) return "";
+  const trozo = 100 / tareas.length;
+  const partes = tareas.map((t, i) => {
+    const c = COLOR_PRIO[t.prioridad] || "var(--baja)";
+    return `${c} ${i * trozo}%, ${c} ${(i + 1) * trozo}%`;
+  });
+  return `<div class="celda-franja" style="background:linear-gradient(90deg,${partes.join(",")})"></div>`;
+}
+
+/** Lunes de la semana en que cae una fecha. La semana empieza en lunes. */
+function lunesDe(fecha) {
+  const d = new Date(fecha.getFullYear(), fecha.getMonth(), fecha.getDate());
+  d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+  return d;
+}
+
+export function calendario(tareas, filtros, cursor, modo = "mes") {
   const base = filtrar(tareas, filtros);
   const y = cursor.getFullYear();
   const m = cursor.getMonth();
-  const inicio = (new Date(y, m, 1).getDay() + 6) % 7;
-  const dias = new Date(y, m + 1, 0).getDate();
-  const prevDias = new Date(y, m, 0).getDate();
 
   const porFecha = {};
   base.forEach((t) => {
@@ -337,27 +359,64 @@ export function calendario(tareas, filtros, cursor) {
   });
   const sinFecha = base.filter((t) => !t.vence && t.estado !== "hecho");
 
-  let celdas = "";
-  for (let i = 0; i < inicio; i++)
-    celdas += `<div class="celda fuera"><span class="num">${prevDias - inicio + i + 1}</span></div>`;
-  for (let i = 1; i <= dias; i++) {
-    const iso = `${y}-${pad(m + 1)}-${pad(i)}`;
+  // En la vista de semana caben muchas más tareas por día; en la de mes,
+  // tres y el resto se resume en una franja.
+  const TOPE = modo === "semana" ? 12 : 3;
+
+  /** Una casilla del calendario. `fuera` = día de otro mes. */
+  const celda = (fecha, fuera) => {
+    const iso = `${fecha.getFullYear()}-${pad(fecha.getMonth() + 1)}-${pad(fecha.getDate())}`;
     const del = porFecha[iso] || [];
-    celdas += `<div class="celda${iso === hoyISO() ? " hoy" : ""}"><span class="num">${i}</span>${del
-      .map((t) => `<button class="mini ${t.prioridad}${t.estado === "hecho" ? " completa" : ""}" data-editar="${t.id}" title="${esc(t.titulo)}">${esc(t.titulo)}</button>`)
-      .join("")}</div>`;
+    const finde = fecha.getDay() === 0 || fecha.getDay() === 6;
+    const visibles = del.slice(0, TOPE);
+    const resto = del.slice(TOPE);
+
+    return `<div class="celda${fuera ? " fuera" : ""}${iso === hoyISO() ? " hoy" : ""}${finde ? " finde" : ""}">
+      <span class="num">${fecha.getDate()}</span>
+      ${visibles
+        .map((t) => `<button class="mini ${t.prioridad}${t.estado === "hecho" ? " completa" : ""}" data-editar="${t.id}" title="${esc(t.titulo)}">${esc(t.titulo)}</button>`)
+        .join("")}
+      ${resto.length ? `<span class="celda-mas">+${resto.length}</span>${franjaPrioridades(resto)}` : ""}
+    </div>`;
+  };
+
+  let celdas = "";
+  let titulo;
+
+  if (modo === "semana") {
+    const lunes = lunesDe(cursor);
+    titulo = `Semana del ${lunes.getDate()} de ${MESES[lunes.getMonth()]}`;
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(lunes);
+      d.setDate(lunes.getDate() + i);
+      celdas += celda(d, d.getMonth() !== m);
+    }
+  } else {
+    // Se capitaliza aquí y no con text-transform: en CSS `capitalize`
+    // pone mayúscula a cada palabra y dejaría "Semana Del 7 De Septiembre".
+    titulo = MESES[m].charAt(0).toUpperCase() + MESES[m].slice(1) + " " + y;
+    const inicio = (new Date(y, m, 1).getDay() + 6) % 7;
+    const dias = new Date(y, m + 1, 0).getDate();
+
+    for (let i = inicio; i > 0; i--) celdas += celda(new Date(y, m, 1 - i), true);
+    for (let i = 1; i <= dias; i++) celdas += celda(new Date(y, m, i), false);
+    const resto = (7 - ((inicio + dias) % 7)) % 7;
+    for (let i = 1; i <= resto; i++) celdas += celda(new Date(y, m + 1, i), true);
   }
-  const resto = (7 - ((inicio + dias) % 7)) % 7;
-  for (let i = 1; i <= resto; i++)
-    celdas += `<div class="celda fuera"><span class="num">${i}</span></div>`;
+
+  const paso = modo === "semana" ? "semana" : "mes";
 
   return `<div class="cal-cab">
-      <button class="btn btn-icono" data-mes="-1" aria-label="Mes anterior">‹</button>
-      <h2>${MESES[m]} ${y}</h2>
-      <button class="btn btn-icono" data-mes="1" aria-label="Mes siguiente">›</button>
+      <button class="btn btn-icono" data-mes="-1" aria-label="${paso === "semana" ? "Semana anterior" : "Mes anterior"}">‹</button>
+      <h2>${titulo}</h2>
+      <button class="btn btn-icono" data-mes="1" aria-label="${paso === "semana" ? "Semana siguiente" : "Mes siguiente"}">›</button>
       <button class="btn" data-mes="0">Hoy</button>
+      <div class="vista-toggle" role="group" aria-label="Escala del calendario">
+        <button type="button" data-cal="mes" aria-selected="${String(modo !== "semana")}">Mes</button>
+        <button type="button" data-cal="semana" aria-selected="${String(modo === "semana")}">Semana</button>
+      </div>
     </div>
-    <div class="rejilla">${DIAS.map((d) => `<div class="dia-nombre">${d}</div>`).join("")}${celdas}</div>
+    <div class="rejilla${modo === "semana" ? " semana" : ""}">${DIAS.map((d) => `<div class="dia-nombre">${d}</div>`).join("")}${celdas}</div>
     ${
       sinFecha.length
         ? `<div class="panel" style="margin-top:14px"><h3>Sin fecha límite</h3>
