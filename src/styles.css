@@ -266,6 +266,26 @@ select.campo{cursor:pointer}
 }
 .btn-ojo:hover{background:var(--sello-suave);color:var(--tinta)}
 
+.acento-rojo{color:var(--sello)}
+
+/* Medidor de fortaleza: cuatro segmentos que se encienden de rojo a verde.
+   No bloquea nada; el mínimo real lo impone el servidor. */
+.clave-fuerza{display:flex;gap:3px;margin:-10px 0 14px;height:3px}
+.clave-fuerza span{flex:1;background:var(--hoja-3);border-radius:2px}
+.clave-fuerza[data-n="1"] span:nth-child(-n+1),
+.clave-fuerza[data-n="2"] span:nth-child(-n+2){background:var(--alerta)}
+.clave-fuerza[data-n="3"] span:nth-child(-n+3){background:var(--media)}
+.clave-fuerza[data-n="4"] span{background:var(--ok)}
+
+/* Barra de avance en la tarjeta de muestra de la portada. */
+.vistazo-progreso{
+  height:4px;background:var(--hoja-3);border-radius:2px;margin-bottom:14px;overflow:hidden;
+}
+.vistazo-progreso span{
+  display:block;height:100%;width:35%;border-radius:2px;
+  background:linear-gradient(90deg,var(--sello),var(--sello-hondo));
+}
+
 .acceso-fila{display:flex;align-items:center;justify-content:flex-end;gap:16px;margin:2px 0 24px}
 .aviso-acceso{
   margin:0 0 18px;padding:11px 13px;border-radius:10px;font-size:13.5px;
@@ -313,9 +333,12 @@ select.campo{cursor:pointer}
   border:1px solid var(--linea);background:var(--hoja);overflow-x:auto;
 }
 .pestanas button{
-  border:0;background:transparent;padding:8px 16px;border-radius:8px;
+  display:inline-flex;align-items:center;gap:6px;
+  border:0;background:transparent;padding:8px 14px;border-radius:8px;
   font-weight:500;font-size:14px;color:var(--tinta-3);cursor:pointer;white-space:nowrap;
 }
+.pestanas button svg{flex:none;opacity:.8}
+.pestanas button[aria-selected="true"] svg{opacity:1}
 .pestanas button:hover{color:var(--tinta)}
 .pestanas button[aria-selected="true"]{background:var(--sello);color:var(--sobre-sello)}
 
@@ -326,16 +349,69 @@ select.campo{cursor:pointer}
 }
 @media (max-width:760px){
   .filtros{padding:0 20px 14px;gap:8px}
-  .filtros .campo{flex:1 1 140px}
-  #buscar{flex:1 1 100%;max-width:none}
+  .busqueda{flex:1 1 100%;max-width:none}
+  .filtros-chips{width:100%}
   .estado-nube{margin-left:0;width:100%;justify-content:flex-end}
 }
-#buscar{flex:1 1 240px;max-width:340px;min-height:40px}
-.filtros .campo{min-height:40px}
+
+/* ---- buscador con su atajo ---- */
+.busqueda{position:relative;display:flex;align-items:center;flex:1 1 240px;max-width:340px}
+#buscar{width:100%;min-height:42px;padding-right:60px}
+kbd.atajo{
+  font-family:var(--f-dato);font-size:10px;padding:2px 6px;
+  border:1px solid var(--linea);border-radius:4px;color:var(--tinta-3);background:var(--papel);
+}
+.busqueda kbd.atajo{position:absolute;right:10px;pointer-events:none}
+/* Al escribir, el atajo estorba: ya estás donde te llevaba. */
+.busqueda:focus-within kbd.atajo{opacity:0}
+
+/* ---- filtros como chips ---- */
+.filtros-chips{
+  display:flex;gap:8px;flex-wrap:wrap;align-items:center;
+  padding:6px;border-radius:12px;
+  background:color-mix(in oklab,var(--hoja) 60%,transparent);
+  border:1px solid var(--linea);
+}
+.chip-filtro{
+  display:inline-flex;align-items:center;gap:2px;
+  min-height:38px;padding:0 4px 0 12px;border-radius:9px;font-size:12.5px;
+}
+.chip-filtro.sin-poner{border:1px dashed var(--linea-fuerte);color:var(--tinta-3);background:transparent}
+.chip-filtro.aplicado{border:1px solid var(--linea-fuerte);background:var(--sello-suave);color:var(--sello-claro)}
+.chip-filtro:hover{border-color:var(--sello)}
+/* El <select> se vuelve invisible como control y hereda el aspecto del chip;
+   sigue siendo el mismo elemento nativo para el teclado y el celular. */
+.chip-filtro select{
+  border:0;background:transparent;color:inherit;cursor:pointer;
+  font-family:var(--f-texto);font-size:12.5px;padding:8px 4px 8px 0;
+  min-width:0;max-width:170px;
+}
+.chip-filtro select:focus{outline:none}
+.chip-filtro:focus-within{outline:2px solid var(--sello);outline-offset:2px}
+.chip-et{padding:8px 0;font-size:12.5px}
+.chip-x{
+  border:0;background:transparent;color:var(--tinta-3);cursor:pointer;
+  font-size:15px;line-height:1;padding:6px 6px;border-radius:6px;
+}
+.chip-x:hover{color:var(--sello);background:var(--sello-suave)}
+.btn-limpiar-todo{min-height:38px;padding:0 12px;font-size:12.5px}
+
+/* En el celular se toca con el dedo, no con un puntero: 44px es el mínimo
+   que se acierta sin mirar. */
+@media (max-width:760px){
+  .chip-filtro,.btn-limpiar-todo{min-height:44px}
+  .chip-filtro select{padding-top:11px;padding-bottom:11px}
+  .chip-x{padding:9px 8px}
+}
 .estado-nube{
   margin-left:auto;display:flex;align-items:center;gap:9px;
   font-family:var(--f-dato);font-size:12px;letter-spacing:.06em;color:var(--tinta-3);
 }
+.contador-tareas{
+  font-family:var(--f-dato);font-size:11px;color:var(--tinta-3);
+  padding-left:12px;margin-left:2px;border-left:1px solid var(--linea);
+}
+.contador-tareas:empty{display:none}
 .punto{width:7px;height:7px;border-radius:50%;background:var(--tinta-3);flex:none}
 .punto.on{background:var(--sello);box-shadow:0 0 10px rgba(211,0,0,.8)}
 .punto.off{background:var(--media)}
@@ -347,10 +423,46 @@ select.campo{cursor:pointer}
   background:var(--hoja);border:1px solid var(--linea-fuerte);border-radius:14px;
   box-shadow:var(--sombra-alta);padding:6px;display:flex;flex-direction:column;
 }
+.menu-perfil{
+  display:flex!important;align-items:center;gap:10px;width:100%;text-align:left;
+  padding:10px!important;border-radius:9px;border:0;background:none;cursor:pointer;
+  margin-bottom:4px;
+}
+.menu-perfil:hover{background:var(--hoja-2)}
+.menu-perfil .avatar{width:32px;height:32px;font-size:12px;flex:none}
+.menu-perfil-txt{display:flex;flex-direction:column;min-width:0}
+.menu-perfil-txt b{
+  font-family:var(--f-display);font-size:13.5px;font-weight:600;color:var(--tinta);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
 .menu-correo{
-  font-family:var(--f-dato);font-size:11px;color:var(--tinta-3);
-  padding:8px 10px;border-bottom:1px solid var(--linea);margin-bottom:4px;
-  overflow:hidden;text-overflow:ellipsis;
+  font-family:var(--f-dato);font-size:10.5px;color:var(--tinta-3);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+
+/* Tarjeta de recordatorios: el estado se ve sin abrir nada, porque es la
+   clase de ajuste que se queda olvidado en cualquiera de las dos posiciones. */
+.menu-card-recordatorios{
+  display:flex!important;align-items:center;gap:10px;width:100%;text-align:left;
+  margin:2px 0 6px;padding:9px 11px!important;border-radius:9px;cursor:pointer;
+  background:color-mix(in oklab,var(--ok) 12%,transparent);
+  border:1px solid color-mix(in oklab,var(--ok) 32%,transparent)!important;
+}
+.menu-card-recordatorios.inactivo{
+  background:var(--media-fondo);
+  border-color:rgba(232,177,76,.35)!important;
+}
+.menu-card-recordatorios:hover{border-color:var(--sello)!important}
+.mcr-txt{display:flex;flex-direction:column;min-width:0;flex:1}
+.mcr-txt b{font-size:12.5px;font-weight:600;color:var(--tinta)}
+.mcr-txt small{font-family:var(--f-dato);font-size:9.5px;color:var(--tinta-3);line-height:1.4}
+.mcr-accion{
+  font-family:var(--f-dato);font-size:10px;color:var(--sello-claro);flex:none;
+}
+
+.menu-peligro{
+  display:flex;flex-direction:column;
+  border-top:1px solid var(--linea);margin-top:6px;padding-top:4px;
 }
 .menu-lista button{
   border:0;background:none;text-align:left;padding:9px 10px;border-radius:8px;
@@ -376,11 +488,34 @@ select.campo{cursor:pointer}
   box-shadow:var(--sombra-alta);padding:6px;
 }
 .bandeja-cab{
-  display:flex;align-items:baseline;justify-content:space-between;gap:10px;
+  display:flex;align-items:center;flex-wrap:wrap;gap:8px;
   padding:9px 10px 10px;border-bottom:1px solid var(--linea);margin-bottom:4px;
 }
 .bandeja-cab b{font-family:var(--f-display);font-size:14px;font-weight:600;color:var(--tinta)}
-.bandeja-cab span{font-family:var(--f-dato);font-size:11px;color:var(--tinta-3)}
+.bandeja-resumen{
+  font-family:var(--f-dato);font-size:11px;color:var(--tinta-3);
+  width:100%;order:3;
+}
+.bandeja-filtro{
+  display:flex;gap:2px;padding:2px;margin-left:auto;
+  border:1px solid var(--linea);border-radius:7px;background:var(--papel);
+}
+.bandeja-filtro button{
+  border:0;background:transparent;color:var(--tinta-3);
+  padding:4px 10px;font-size:10.5px;border-radius:5px;cursor:pointer;
+}
+.bandeja-filtro button:hover{color:var(--tinta)}
+.bandeja-filtro button[aria-selected="true"]{background:var(--sello);color:var(--sobre-sello)}
+
+/* Secciones: lo que se vence y lo que hicieron los demás son cosas
+   distintas y conviene que se lean como tales. */
+.bandeja-seccion{padding-bottom:4px}
+.bandeja-seccion h3{
+  display:flex;align-items:baseline;justify-content:space-between;gap:8px;
+  margin:10px 10px 2px;font-family:var(--f-display);font-size:11.5px;
+  font-weight:600;letter-spacing:.04em;color:var(--tinta-2);
+}
+.bandeja-seccion + .bandeja-seccion{border-top:1px solid var(--linea);margin-top:6px}
 .bandeja-vacia{margin:0;padding:22px 12px 26px;text-align:center;font-size:13.5px;color:var(--tinta-3)}
 .bandeja-grupo{padding:4px 0 6px}
 .bandeja-grupo h4{
@@ -391,6 +526,13 @@ select.campo{cursor:pointer}
   width:100%;display:grid;grid-template-columns:auto minmax(0,1fr) auto;
   align-items:center;gap:9px;text-align:left;
   border:0;background:none;padding:8px 10px;border-radius:8px;cursor:pointer;
+}
+/* Lo vencido lleva una barra roja a la izquierda: se distingue de la
+   actividad sin tener que leerlo. */
+.bandeja-item.por-vencer.urgente{
+  background:color-mix(in oklab,var(--alerta) 8%,transparent);
+  border-left:2px solid var(--alerta);border-radius:0 8px 8px 0;
+  margin:0 6px;width:calc(100% - 12px);
 }
 .bandeja-item:hover{background:var(--hoja-2)}
 .bandeja-item .bi-punto{
@@ -428,10 +570,31 @@ main{max-width:1560px;margin:0 auto;padding:28px 40px 64px;position:relative;ove
   :root[data-theme="light"] .pestanas{background:rgba(250,250,250,.96)}
   .pestanas button{
     flex:1;min-height:48px;padding:6px 4px;border-radius:12px;
-    font-size:11.5px;text-align:center;white-space:normal;line-height:1.2;
+    flex-direction:column;gap:3px;
+    font-size:11px;text-align:center;white-space:normal;line-height:1.2;
   }
+  .pestanas button svg{width:18px;height:18px}
   .pestanas button[aria-selected="true"]{background:var(--sello-suave);color:var(--sello-claro)}
-  main{padding-bottom:96px}
+  /* Deja sitio a la barra inferior y al botón flotante. */
+  main{padding-bottom:calc(112px + env(safe-area-inset-bottom))}
+}
+
+/* =========================================================
+   Botón flotante de nueva tarea (solo celular)
+   ========================================================= */
+.fab-nueva{display:none}
+@media (max-width:760px){
+  #btn-nueva{display:none}
+  .fab-nueva{
+    position:fixed;right:18px;bottom:calc(84px + env(safe-area-inset-bottom));
+    z-index:45;width:56px;height:56px;border-radius:50%;
+    display:grid;place-items:center;
+    background:var(--sello);color:var(--sobre-sello);border:0;
+    box-shadow:var(--sombra-sello),0 6px 20px rgba(0,0,0,.4);cursor:pointer;
+  }
+  .fab-nueva:active{background:var(--sello-hondo)}
+  /* Con la ficha o una hoja abierta estorba y compite con sus botones. */
+  .telon:not([hidden]) ~ .fab-nueva{display:none}
 }
 
 /* ===================== Tablero ===================== */
@@ -454,12 +617,24 @@ main{max-width:1560px;margin:0 auto;padding:28px 40px 64px;position:relative;ove
   font-family:var(--f-dato);font-size:12px;padding:2px 8px;border-radius:6px;
   background:var(--sello-suave);color:var(--tinta-2);
 }
+.col-cab .cuenta.urgente{background:var(--alerta-fondo);color:var(--alerta);font-weight:500}
+/* Barra de salud: qué proporción de la columna ya venció o vence hoy. */
+.col-salud{height:2px;border-radius:1px;background:var(--hoja-3);overflow:hidden;margin-top:-4px}
+.col-salud-relleno{display:block;height:100%;background:var(--sello);border-radius:1px}
+.col-salud-relleno.alerta{background:var(--alerta)}
 .raya{height:3px;border-radius:2px;background:var(--linea-fuerte);flex:none;width:18px;display:inline-block}
 .raya.por_hacer{background:var(--sello)}
 .raya.en_curso{background:rgba(211,0,0,.6)}
 .raya.en_revision{background:rgba(211,0,0,.4)}
 .raya.hecho{background:rgba(211,0,0,.25)}
 .lista-col{display:flex;flex-direction:column;gap:12px;min-height:24px}
+.drop-slot{
+  border:2px dashed var(--sello);background:var(--sello-suave);border-radius:12px;
+  padding:22px;text-align:center;font-family:var(--f-dato);font-size:12px;
+  letter-spacing:.08em;color:var(--sello-claro);pointer-events:none;
+}
+/* Varios avatares se apilan y se solapan: ocupan menos y se lee como grupo. */
+.avatar + .avatar{margin-left:-6px;border:2px solid var(--hoja-2)}
 
 .tarjeta{
   background:var(--hoja-2);border:1px solid rgba(211,0,0,.22);border-radius:var(--r);
@@ -493,7 +668,7 @@ main{max-width:1560px;margin:0 auto;padding:28px 40px 64px;position:relative;ove
 .quien{display:flex;align-items:center;gap:9px;margin-right:auto;min-width:0}
 .avatar{
   width:22px;height:22px;border-radius:50%;flex:none;display:grid;place-items:center;
-  font-family:var(--f-texto);font-size:11px;font-weight:600;color:#FFFFFF;text-transform:uppercase;
+  font-family:var(--f-texto);font-size:11px;font-weight:600;color:var(--sobre-sello);text-transform:uppercase;
 }
 .quien span{font-size:13px;color:var(--tinta-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mover{
@@ -509,6 +684,33 @@ main{max-width:1560px;margin:0 auto;padding:28px 40px 64px;position:relative;ove
 .agregar-col:hover{border-color:var(--sello);color:var(--sello-claro);background:rgba(211,0,0,.06)}
 
 /* ===================== Lista ===================== */
+/* Texto solo para lectores de pantalla: encabezados de columna que en
+   pantalla se entienden sin palabras, pero que dictados harían falta. */
+.sr-solo{
+  position:absolute;width:1px;height:1px;padding:0;margin:-1px;
+  overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0;
+}
+
+.lista-agrupar{
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+  padding:10px 16px;margin-bottom:14px;border-radius:var(--r-g);
+  background:var(--hoja-2);border:1px solid var(--linea);font-size:12px;
+}
+.lista-agrupar-et{
+  font-family:var(--f-dato);font-size:10.5px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--tinta-3);margin-right:2px;
+}
+.lista-agrupar .chip.agrupar{
+  cursor:pointer;background:transparent;border-color:var(--linea);
+  color:var(--tinta-2);font-family:var(--f-texto);min-height:30px;
+  display:inline-flex;align-items:center;
+}
+.lista-agrupar .chip.agrupar:hover{border-color:var(--sello);color:var(--tinta)}
+.lista-agrupar .chip.agrupar[aria-selected="true"]{
+  background:var(--sello-suave);color:var(--sello-claro);border-color:var(--linea-fuerte);
+}
+@media (max-width:760px){.lista-agrupar .chip.agrupar{min-height:44px}}
+
 .envoltura-tabla{
   overflow-x:auto;background:var(--hoja);
   border:1px solid var(--linea);border-radius:var(--r-g);
@@ -530,12 +732,55 @@ td.col-titulo{font-family:var(--f-display);font-weight:600;font-size:15px;min-wi
   cursor:pointer;font-size:13px;padding:4px 8px;border-radius:6px;
 }
 .editar:hover{background:var(--sello-suave)}
+.guion{color:var(--tinta-3)}
+
+/* ---- agrupamiento, casilla y acciones de fila ---- */
+.grupo-cab td{
+  padding:12px 20px 7px;
+  background:color-mix(in oklab,var(--sello) 5%,transparent);
+  font-family:var(--f-dato);font-size:11px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--tinta-2);border-bottom:1px solid var(--linea);
+}
+.grupo-cab .raya{margin-right:9px;vertical-align:middle}
+.grupo-cuenta{
+  margin-left:9px;padding:1px 7px;border-radius:5px;
+  background:var(--hoja-3);color:var(--tinta-3);letter-spacing:.04em;
+}
+tbody tr:hover{background:var(--hoja-2)}
+.fila-hecha .col-titulo{color:var(--tinta-3);text-decoration:line-through}
+
+th.col-marca,td.col-marca{width:44px;padding-right:0;text-align:center}
+.marca-hecha{
+  width:17px;height:17px;accent-color:var(--sello);cursor:pointer;vertical-align:middle;
+}
+@media (max-width:760px){
+  th.col-marca,td.col-marca{width:52px}
+  .marca-hecha{width:20px;height:20px}
+}
+
+/* Las acciones aparecen al posarse encima; con el teclado, al enfocarlas.
+   Sin ese segundo caso serían inalcanzables sin ratón. */
+.acciones-fila{display:flex;gap:4px;justify-content:flex-end;opacity:0}
+tbody tr:hover .acciones-fila,
+.acciones-fila:focus-within{opacity:1}
+.acciones-fila button{
+  border:0;background:transparent;color:var(--sello-claro);
+  font-family:var(--f-dato);font-size:12px;padding:5px 7px;border-radius:6px;cursor:pointer;
+}
+.acciones-fila button:hover{background:var(--sello-suave)}
+.acciones-fila button.peligro{color:var(--alerta)}
+.acciones-fila button.peligro:hover{background:var(--alerta-fondo)}
+/* En pantallas táctiles no existe "posarse encima": siempre visibles. */
+@media (hover:none){
+  .acciones-fila{opacity:1}
+  .acciones-fila button{padding:10px 8px}
+}
 
 /* ===================== Calendario ===================== */
 .cal-cab{display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap}
 .cal-cab h2{
   font-family:var(--f-display);font-size:20px;font-weight:600;margin:0;
-  text-transform:capitalize;letter-spacing:-.01em;color:var(--tinta);
+  letter-spacing:-.01em;color:var(--tinta);
 }
 .rejilla{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px}
 .dia-nombre{
@@ -548,10 +793,39 @@ td.col-titulo{font-family:var(--f-display);font-weight:600;font-size:15px;min-wi
   display:flex;flex-direction:column;gap:6px;
 }
 .celda.fuera{background:var(--papel);border-color:rgba(211,0,0,.07)}
+/* El fin de semana se apaga un poco: sigue ahí, pero deja de competir con
+   los días en que de verdad se trabaja. */
+.celda.finde{background:color-mix(in oklab,var(--papel) 70%,transparent)}
+.celda.finde:not(.hoy) .num{opacity:.7}
 .celda .num{font-family:var(--f-dato);font-size:12px;color:var(--tinta-2)}
 .celda.fuera .num{color:var(--tinta-3);opacity:.5}
-.celda.hoy{border-color:var(--linea-fuerte);background:rgba(211,0,0,.08)}
+.celda.hoy{
+  border-color:var(--linea-fuerte);background:rgba(211,0,0,.08);
+  box-shadow:0 0 0 3px color-mix(in oklab,var(--sello) 18%,transparent);
+}
 .celda.hoy .num{color:var(--sello-claro);font-weight:500}
+.celda-mas{
+  font-family:var(--f-dato);font-size:10px;color:var(--tinta-3);
+  align-self:flex-end;margin-top:2px;
+}
+.celda-franja{height:3px;border-radius:2px;margin-top:auto}
+
+.vista-toggle{
+  display:flex;gap:2px;padding:3px;margin-left:auto;
+  border:1px solid var(--linea);background:var(--hoja);border-radius:9px;
+}
+.vista-toggle button{
+  border:0;background:transparent;color:var(--tinta-3);
+  padding:5px 12px;font-size:11.5px;border-radius:6px;cursor:pointer;
+}
+.vista-toggle button:hover{color:var(--tinta)}
+.vista-toggle button[aria-selected="true"]{background:var(--sello);color:var(--sobre-sello)}
+@media (max-width:760px){
+  .vista-toggle{margin-left:0}
+  .vista-toggle button{min-height:38px;padding:0 14px}
+}
+/* En vista de semana hay una sola fila: cada día puede respirar. */
+.rejilla.semana .celda{min-height:260px}
 .mini{
   text-align:left;border:1px solid var(--linea-fuerte);background:rgba(211,0,0,.18);
   border-radius:8px;padding:6px 8px;font-size:12.5px;font-weight:500;line-height:1.25;
@@ -570,7 +844,9 @@ td.col-titulo{font-family:var(--f-display);font-weight:600;font-size:15px;min-wi
 }
 
 /* ===================== Indicadores ===================== */
-.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:20px}
+/* El min() evita que la columna mínima sea más ancha que la pantalla: sin
+   él, a 320px los paneles se salían del borde. */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(200px,100%),1fr));gap:16px;margin-bottom:20px}
 .kpi{
   padding:20px;border-radius:var(--r-g);border:1px solid var(--linea);
   background:linear-gradient(160deg,var(--hoja-2) 0%,var(--papel) 100%);
@@ -587,8 +863,46 @@ td.col-titulo{font-family:var(--f-display);font-weight:600;font-size:15px;min-wi
 }
 .kpi.aviso .n{color:var(--sello-claro)}
 .kpi .nota{margin-top:8px;font-size:13px;color:var(--tinta-2)}
-.paneles{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px}
-.panel{padding:24px;border-radius:var(--r-g);border:1px solid var(--linea);background:var(--hoja)}
+.kpi-delta{font-family:var(--f-dato);font-size:10.5px;color:var(--ok);margin-top:6px}
+.kpi-delta.mal{color:var(--alerta)}
+.kpi-delta:empty{display:none}
+.kpi-accion{
+  align-self:flex-start;margin-top:10px;padding:4px 0;
+  border:0;background:none;cursor:pointer;
+  font-family:var(--f-dato);font-size:11.5px;color:var(--sello-claro);
+}
+.kpi-accion:hover{text-decoration:underline}
+
+/* Barritas verticales. Sin ejes ni números: no es un gráfico para leer
+   valores, es para ver la forma —si el ritmo sube, baja o se detuvo—. */
+.spark{display:flex;align-items:flex-end;gap:2px;height:22px;margin-top:10px}
+.spark span{
+  flex:1;border-radius:1px;
+  background:color-mix(in oklab,var(--sello) 45%,transparent);
+}
+.spark span.pico{background:var(--sello)}
+
+.barra-segmentada{
+  height:10px;border-radius:5px;overflow:hidden;display:flex;min-width:6px;
+}
+.barra-segmentada span{display:block;height:100%}
+
+.histograma{
+  display:flex;align-items:flex-end;gap:4px;height:96px;
+  padding-bottom:6px;border-bottom:1px solid var(--linea);
+}
+.histo-barra{flex:1;height:100%;display:flex;align-items:flex-end}
+.histo-barra span{
+  display:block;width:100%;border-radius:3px 3px 0 0;
+  background:linear-gradient(180deg,var(--sello),var(--sello-hondo));
+}
+.histo-pie{
+  display:flex;justify-content:space-between;margin-top:8px;
+  font-family:var(--f-dato);font-size:10.5px;color:var(--tinta-3);
+}
+.paneles{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(320px,100%),1fr));gap:16px}
+.panel{padding:24px;border-radius:var(--r-g);border:1px solid var(--linea);background:var(--hoja);min-width:0}
+@media (max-width:420px){.panel{padding:18px 16px}}
 .panel h3{font-family:var(--f-display);font-size:16px;margin:0 0 2px;font-weight:600;color:var(--tinta)}
 .panel p.sub{margin:0 0 20px;font-size:13px;color:var(--tinta-3)}
 .barras{display:flex;flex-direction:column;gap:14px}
@@ -652,8 +966,528 @@ textarea.campo{resize:vertical;min-height:76px}
 }
 .brindis.mal{background:var(--sello);border-color:var(--sello);color:var(--sobre-sello)}
 
+/* =========================================================
+   Selector de tableros
+   ========================================================= */
+.tb{position:relative}
+.tb-actual{
+  display:flex;align-items:center;gap:9px;max-width:260px;min-height:44px;
+  border:1px solid var(--linea-fuerte);background:var(--hoja);color:var(--tinta);
+  padding:6px 12px;border-radius:10px;cursor:pointer;font-size:13.5px;line-height:1.15;
+  text-align:left;
+}
+.tb-actual:hover{border-color:var(--sello)}
+.tb-actual > span:first-child{display:flex;align-items:center;gap:9px;min-width:0}
+.tb-actual svg{flex:none;color:var(--tinta-3)}
+.tb-color{width:9px;height:9px;border-radius:3px;flex:none;display:inline-block}
+.tb-actual-txt{display:flex;flex-direction:column;min-width:0}
+.tb-actual-meta{
+  display:block;font-family:var(--f-dato);font-size:9px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--tinta-3);margin-top:2px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.tb-actual-nombre,.tb-nombre{
+  font-family:var(--f-display);font-weight:600;font-size:13.5px;color:var(--tinta);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.tb-rol{
+  font-family:var(--f-dato);font-size:10px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--tinta-3);border:1px solid var(--linea);border-radius:5px;padding:1px 6px;flex:none;
+}
+.tb-panel{
+  position:absolute;left:0;top:calc(100% + 8px);z-index:45;
+  width:min(300px,calc(100vw - 32px));max-height:min(70vh,440px);overflow:auto;
+  background:var(--hoja);border:1px solid var(--linea-fuerte);border-radius:14px;
+  box-shadow:var(--sombra-alta);padding:6px;
+}
+.tb-buscar{padding:4px 4px 8px}
+.tb-buscar .campo{width:100%;min-height:36px;font-size:12.5px}
+.tb-grupo{
+  font-family:var(--f-dato);font-size:9px;color:var(--tinta-3);
+  letter-spacing:.14em;text-transform:uppercase;padding:10px 10px 4px;
+}
+.tb-lista{display:flex;flex-direction:column;gap:2px}
+.tb-fila{display:flex;align-items:center;border-radius:9px}
+.tb-fila:hover{background:var(--hoja-2)}
+.tb-fila.activo{background:var(--sello-suave)}
+.tb-fila.activo .tb-nombre{color:var(--sello-claro)}
+.tb-item{
+  display:flex;align-items:center;gap:10px;flex:1;min-width:0;text-align:left;
+  border:0;background:none;padding:9px 4px 9px 10px;border-radius:9px;cursor:pointer;
+}
+.tb-txt{display:flex;flex-direction:column;min-width:0;flex:1}
+.tb-item .tb-nombre{display:block}
+.tb-meta{
+  font-family:var(--f-dato);font-size:9.5px;color:var(--tinta-3);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:1px;
+}
+/* La estrella solo se ve al pasar por encima o cuando está puesta: en
+   reposo, una columna de estrellas apagadas es ruido. */
+.tb-fijar{
+  flex:none;display:grid;place-items:center;width:30px;height:30px;margin-right:6px;
+  border:0;background:transparent;color:var(--tinta-3);border-radius:7px;cursor:pointer;
+  opacity:0;
+}
+.tb-fila:hover .tb-fijar,.tb-fijar.puesto,.tb-fijar:focus-visible{opacity:1}
+.tb-fijar.puesto{color:var(--sello)}
+.tb-fijar:hover{background:var(--hoja-3);color:var(--sello-claro)}
+@media (hover:none){.tb-fijar{opacity:1}}
+
+.tb-vacio{margin:0;padding:18px 10px;text-align:center;font-size:13px;color:var(--tinta-3)}
+.tb-pie{padding:8px 4px 4px;margin-top:4px;border-top:1px solid var(--linea)}
+.tb-nuevo{
+  width:100%;padding:11px;border-radius:10px;cursor:pointer;
+  border:1px dashed var(--linea-fuerte);background:transparent;
+  color:var(--sello-claro);font-size:13px;font-weight:500;
+}
+.tb-nuevo:hover{background:var(--sello-suave);border-color:var(--sello)}
+@media (max-width:860px){.tb-actual{max-width:170px}}
+/* En el celular la chapa baja a su propia fila. Compartiendo línea con el
+   logo y los tres botones le quedaban 100px y el nombre salía cortado en
+   "L…"; ahí lo que hace falta saber es justamente en qué tablero estás. */
+@media (max-width:760px){
+  .tb{order:3;flex:1 1 100%;min-width:0}
+  .tb-actual{max-width:none;width:100%}
+}
+
+/* Grupos y acciones destructivas del menú de cuenta */
+.menu-grupo{
+  font-family:var(--f-dato);font-size:10px;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--tinta-3);padding:10px 10px 4px;
+}
+.menu-lista button.peligro{color:var(--alerta)}
+.menu-lista button.peligro:hover{background:var(--alerta-fondo);color:var(--alerta)}
+
+/* =========================================================
+   Saludo de bienvenida (solo en pantallas pequeñas)
+   ========================================================= */
+.saludo{
+  position:relative;z-index:1;display:none;
+  margin:0 0 18px;padding:20px 22px;border-radius:var(--r-g);
+  border:1px solid var(--linea);
+  background:linear-gradient(150deg,var(--hoja-2) 0%,var(--papel) 100%);
+}
+/* Aquí sí aparece: en el celular la app arranca en el tablero y no hay
+   espacio para ver de un vistazo cómo viene el día. */
+@media (max-width:760px){.saludo{display:block}}
+
+.saludo #btn-cerrar-saludo,.saludo .icono-quitar{position:absolute;top:10px;right:10px}
+.saludo-fecha{
+  margin:0 0 4px;font-family:var(--f-dato);font-size:9.5px;color:var(--tinta-3);
+  letter-spacing:.14em;text-transform:uppercase;
+}
+.saludo-hola{
+  margin:0;font-family:var(--f-display);font-size:22px;font-weight:700;
+  letter-spacing:-.02em;color:var(--tinta);text-wrap:balance;padding-right:30px;
+}
+.saludo-resumen{margin:6px 0 0;font-size:14px;line-height:1.5;color:var(--tinta-2)}
+
+.saludo-progreso{
+  height:6px;background:var(--hoja-3);border-radius:3px;overflow:hidden;margin:14px 0 6px;
+}
+.saludo-progreso-relleno{
+  display:block;height:100%;border-radius:3px;
+  background:linear-gradient(90deg,var(--sello),var(--sello-claro));
+}
+.saludo-semana-txt{
+  margin:0;font-family:var(--f-dato);font-size:10.5px;color:var(--tinta-3);
+}
+
+/* Tres tarjetitas en fila: la cifra grande y su etiqueta debajo. Ocupan lo
+   mismo entre ellas para que el ojo las compare de un vistazo. */
+.saludo-cifras{display:flex;gap:8px;margin-top:14px}
+.saludo-cifras:empty{display:none}
+.saludo-cifra{
+  flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:2px;
+  padding:9px 6px;border-radius:10px;
+  border:1px solid var(--linea);background:var(--hoja-2);
+  font-size:11px;color:var(--tinta-3);text-align:center;
+}
+.saludo-cifra b{
+  font-family:var(--f-display);font-size:18px;font-weight:700;color:var(--tinta);
+  font-variant-numeric:tabular-nums;line-height:1.1;
+}
+.saludo-cifra.aviso{background:var(--alerta-fondo);border-color:rgba(255,65,65,.35)}
+.saludo-cifra.aviso b,.saludo-cifra.aviso{color:var(--alerta)}
+
+/* =========================================================
+   Actividad dentro de la campana
+   ========================================================= */
+.bandeja-item.actividad{align-items:flex-start}
+.bandeja-item.actividad .bi-punto{margin-top:6px}
+.bandeja-item.actividad .bi-texto{
+  white-space:normal;line-height:1.45;font-size:13px;color:var(--tinta-2);
+  overflow-wrap:anywhere;
+}
+.bandeja-item.actividad .bi-texto b{color:var(--tinta);font-weight:600}
+.bandeja-item.actividad .bi-texto i{color:var(--tinta-3)}
+.bandeja-item.actividad .bi-cuando{margin-top:5px}
+.bandeja-item.actividad.nueva{background:var(--sello-suave)}
+.bandeja-item.actividad.nueva .bi-cuando{color:var(--sello-claro)}
+.bandeja-nuevas{
+  float:right;font-family:var(--f-dato);font-size:10px;letter-spacing:.06em;
+  text-transform:none;color:var(--sello-claro);
+}
+
+.aviso-solo-lectura{
+  position:relative;z-index:1;margin:0 0 18px;padding:11px 14px;border-radius:10px;
+  background:var(--media-fondo);border:1px solid rgba(232,177,76,.35);
+  color:var(--tinta-2);font-size:13.5px;
+}
+
+/* =========================================================
+   Avance de subtareas e insignias en las tarjetas
+   ========================================================= */
+.avance{display:flex;align-items:center;gap:9px}
+.avance-pista{
+  flex:1;height:5px;border-radius:4px;background:var(--hoja-3);overflow:hidden;display:block;
+}
+.avance-relleno{
+  display:block;height:100%;border-radius:4px;min-width:2px;
+  background:linear-gradient(90deg,var(--sello),var(--sello-hondo));
+}
+.avance.completo .avance-relleno{background:var(--ok)}
+.avance-texto{
+  font-family:var(--f-dato);font-size:11px;color:var(--tinta-3);flex:none;
+  font-variant-numeric:tabular-nums;
+}
+.avance.completo .avance-texto{color:var(--ok)}
+.avance.grande{margin-bottom:16px}
+.avance.grande .avance-pista{height:8px}
+.avance.grande .avance-texto{font-size:12.5px}
+
+.insignias{display:flex;align-items:center;gap:8px;flex:none}
+.insignia{
+  display:inline-flex;align-items:center;gap:4px;
+  font-family:var(--f-dato);font-size:11px;color:var(--tinta-3);
+}
+.insignia svg{flex:none;stroke-linecap:round;stroke-linejoin:round}
+.mini-avance{
+  display:block;margin-top:4px;font-family:var(--f-dato);font-size:11px;
+  font-weight:400;color:var(--tinta-3);letter-spacing:.04em;
+}
+.mini-avance.completo{color:var(--ok)}
+td.col-titulo .insignias{margin-top:6px}
+
+/* =========================================================
+   Ficha de tarea: cabecera y pestañas
+   ========================================================= */
+.hoja-cab{display:flex;align-items:center;gap:12px}
+.hoja-cab h2{flex:1;min-width:0}
+
+/* =========================================================
+   Ficha de tarea
+   La hoja genérica conserva su relleno; la ficha lo reparte
+   entre cabezal, cuerpo y pie para que el cabezal llegue a
+   los bordes y el pie quede pegado abajo.
+   ========================================================= */
+.hoja-ficha{padding:0;gap:0;width:min(680px,100%)}
+.hoja-ficha > .ficha{padding:20px 24px;overflow:auto}
+.hoja-ficha > .fichas{margin:0 24px}
+
+.ficha-cab{
+  padding:16px 20px 16px 24px;border-bottom:1px solid var(--linea);
+  background:linear-gradient(180deg,var(--sello-suave),transparent);
+}
+.ficha-meta-top{
+  display:flex;align-items:center;gap:10px;margin-bottom:12px;
+  font-family:var(--f-dato);font-size:10px;color:var(--tinta-3);
+}
+.ficha-meta-top .sep{width:1px;height:12px;background:var(--linea);flex:none}
+.ficha-tablero,.ficha-origen{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ficha-estado-guardado{
+  margin-left:auto;display:flex;align-items:center;gap:6px;color:var(--ok);flex:none;
+}
+.ficha-estado-guardado .punto{background:var(--ok);box-shadow:none}
+.ficha-estado-guardado.guardando{color:var(--media)}
+.ficha-estado-guardado.guardando .punto{background:var(--media)}
+/* El indicador de guardado empuja al botón de cerrar hacia la derecha.
+   Cuando no se ve —tarea nueva o solo lectura— el que empuja es el botón. */
+.ficha-meta-top .icono-quitar{margin-left:12px;flex:none}
+.ficha-estado-guardado[hidden] ~ .icono-quitar{margin-left:auto}
+
+/* El título es un campo de formulario disfrazado de titular: se ve como un
+   encabezado, pero respeta el límite de 140 caracteres y no acepta
+   marcado pegado, cosas que un contenteditable no garantiza. */
+.ficha-titulo-edit{
+  display:block;width:100%;border:0;background:transparent;
+  font-family:var(--f-display);font-size:22px;font-weight:700;
+  letter-spacing:-.02em;line-height:1.25;color:var(--tinta);
+  padding:4px 6px;margin:-4px -6px;border-radius:8px;outline:none;
+}
+.ficha-titulo-edit::placeholder{color:var(--tinta-3);font-weight:600}
+.ficha-titulo-edit:focus{background:var(--hoja-2)}
+.ficha-titulo-edit:disabled{color:var(--tinta);opacity:1}
+
+.ficha-pildoras{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.pildora{
+  display:inline-flex;align-items:center;gap:6px;min-height:34px;
+  padding:0 10px;border-radius:8px;
+  background:var(--hoja-2);border:1px solid var(--linea);
+  font-size:12.5px;color:var(--tinta);max-width:100%;
+}
+.pildora:hover{border-color:var(--linea-fuerte)}
+.pildora:focus-within{border-color:var(--sello);outline:2px solid var(--sello);outline-offset:1px}
+.pildora > svg{flex:none;color:var(--tinta-3)}
+.pildora.punteada{border-style:dashed;background:transparent;color:var(--tinta-3)}
+.pildora.punteada > svg{color:var(--tinta-3)}
+.pildora select,
+.pildora input{
+  border:0;background:transparent;color:inherit;font-family:var(--f-texto);
+  font-size:12.5px;padding:7px 0;min-width:0;cursor:pointer;
+}
+.pildora input{cursor:text}
+.pildora select:focus,.pildora input:focus{outline:none}
+.pildora input::placeholder{color:var(--tinta-3)}
+.pildora [name="responsable"]{width:12ch}
+.pildora [name="etiquetas"]{width:16ch}
+.pildora [name="vence"]{width:13ch}
+.pildora .raya{width:14px}
+/* La prioridad se tiñe sola según su valor. */
+.pildora[data-valor="alta"]{background:var(--alta-fondo);border-color:var(--linea-fuerte);color:var(--alta)}
+.pildora[data-valor="media"]{background:var(--media-fondo);border-color:rgba(232,177,76,.35);color:var(--media)}
+.pildora[data-valor="baja"]{background:var(--baja-fondo);border-color:rgba(154,167,184,.3);color:var(--baja)}
+.pildora[data-valor] > svg{color:currentColor}
+
+.sub-bloque{
+  border-top:1px solid var(--linea);padding-top:16px;
+  display:flex;flex-direction:column;gap:14px;
+}
+
+.ficha-pie{
+  display:flex;gap:10px;align-items:center;flex-wrap:wrap;
+  padding:14px 24px;border-top:1px solid var(--linea);background:var(--hoja);
+  padding-bottom:calc(14px + env(safe-area-inset-bottom));
+}
+.ficha-pie .btn-borrar{border-color:transparent;color:var(--alerta);background:transparent}
+.ficha-pie .btn-borrar:hover{background:var(--alerta-fondo);border-color:var(--linea-fuerte)}
+.ficha-guardado-texto{
+  font-family:var(--f-dato);font-size:10px;color:var(--tinta-3);margin:0 auto;
+}
+.ficha-guardado-texto:empty{margin-left:auto;margin-right:auto}
+#btn-hecha{display:inline-flex;align-items:center;gap:7px}
+#btn-hecha:not(.btn-p){background:var(--hoja);color:var(--tinta);box-shadow:none}
+.ficha-contador{
+  font-family:var(--f-dato);font-size:10px;color:var(--tinta-3);margin-left:5px;
+}
+.ficha-contador:empty{display:none}
+.fichas button[aria-selected="true"] .ficha-contador{color:var(--sobre-sello)}
+
+@media (max-width:560px){
+  .hoja-ficha > .ficha{padding:16px 18px}
+  .hoja-ficha > .fichas{margin:0 18px}
+  .ficha-cab{padding:14px 14px 14px 18px}
+  .ficha-pie{padding:12px 18px;padding-bottom:calc(12px + env(safe-area-inset-bottom))}
+  .ficha-titulo-edit{font-size:19px}
+  .pildora{min-height:44px}
+  .pildora select,.pildora input{padding:12px 0}
+  .ficha-guardado-texto{width:100%;order:3;text-align:center;margin:2px 0 0}
+}
+.icono-quitar{
+  flex:none;width:26px;height:26px;display:grid;place-items:center;
+  border:0;border-radius:7px;background:transparent;color:var(--tinta-3);
+  font-size:17px;line-height:1;cursor:pointer;
+}
+.icono-quitar:hover{background:var(--alerta-fondo);color:var(--alerta)}
+.icono-quitar.grande{width:34px;height:34px;font-size:22px}
+
+.fichas{
+  display:flex;gap:2px;padding:4px;border-radius:11px;
+  border:1px solid var(--linea);background:var(--hoja-2);overflow-x:auto;
+}
+.fichas button{
+  border:0;background:transparent;padding:8px 13px;border-radius:8px;white-space:nowrap;
+  font-size:13px;font-weight:500;color:var(--tinta-3);cursor:pointer;
+}
+.fichas button:hover{color:var(--tinta)}
+.fichas button[aria-selected="true"]{background:var(--sello);color:var(--sobre-sello)}
+.ficha{display:flex;flex-direction:column;gap:16px}
+
+.panel-vacio{
+  margin:0;padding:26px 8px;text-align:center;font-size:13.5px;
+  color:var(--tinta-3);line-height:1.6;
+}
+.hoja-texto{margin:0;font-size:14px;line-height:1.6;color:var(--tinta-2)}
+.hoja-botones{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.mini-titulo{
+  margin:0;font-family:var(--f-dato);font-size:11px;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--tinta-3);font-weight:400;
+}
+.campo-mini{padding:5px 8px;font-size:12.5px;flex:none}
+
+/* =========================================================
+   Subtareas
+   ========================================================= */
+.subtareas{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
+.subtarea{
+  display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:9px;
+}
+.subtarea:hover{background:var(--hoja-2)}
+/* `.hoja-form label` las apila en columna y en versalitas. Aquí la casilla
+   y su texto van en la misma línea, así que se revierte de forma explícita. */
+.subtarea label{
+  flex:1;display:flex;flex-direction:row;align-items:flex-start;gap:11px;
+  cursor:pointer;min-width:0;
+  font-family:var(--f-texto);font-size:14px;letter-spacing:normal;text-transform:none;
+  color:var(--tinta);line-height:1.45;
+}
+.subtarea input[type="checkbox"]{
+  flex:none;width:17px;height:17px;margin-top:1px;accent-color:var(--sello);cursor:pointer;
+}
+.subtarea input:disabled{cursor:default}
+.subtarea.hecha label span{color:var(--tinta-3);text-decoration:line-through}
+.agregar-subtarea{display:flex;gap:8px}
+.agregar-subtarea .campo{flex:1;min-width:0}
+
+/* =========================================================
+   Comentarios
+   ========================================================= */
+.comentarios{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:16px}
+.comentario{display:flex;gap:11px;align-items:flex-start}
+.comentario .avatar{margin-top:2px}
+.comentario-cuerpo{flex:1;min-width:0}
+.comentario-cab{display:flex;align-items:center;gap:9px}
+.comentario-cab b{font-family:var(--f-display);font-size:13.5px;font-weight:600;color:var(--tinta)}
+.comentario-cab time{font-family:var(--f-dato);font-size:11px;color:var(--tinta-3);margin-right:auto}
+.comentario-cuerpo p{
+  margin:4px 0 0;font-size:14px;line-height:1.55;color:var(--tinta-2);
+  white-space:pre-wrap;overflow-wrap:anywhere;
+}
+.agregar-comentario{display:flex;flex-direction:column;gap:10px;align-items:flex-end}
+.agregar-comentario .campo{width:100%;min-height:62px;resize:vertical}
+
+/* =========================================================
+   Adjuntos
+   ========================================================= */
+.adjuntos{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.adjunto{
+  display:flex;align-items:center;gap:11px;padding:9px 10px;border-radius:10px;
+  border:1px solid var(--linea);background:var(--hoja-2);
+}
+.adjunto-icono{flex:none;display:grid;place-items:center;color:var(--tinta-3)}
+.adjunto-datos{
+  flex:1;min-width:0;text-align:left;border:0;background:none;cursor:pointer;padding:0;
+  display:flex;flex-direction:column;gap:2px;
+}
+.adjunto-datos b{
+  font-family:var(--f-display);font-size:13.5px;font-weight:600;color:var(--tinta);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.adjunto-datos:hover b{color:var(--sello-claro);text-decoration:underline}
+.adjunto-datos small{font-family:var(--f-dato);font-size:11px;color:var(--tinta-3)}
+.subir{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+
+/* =========================================================
+   Historial
+   ========================================================= */
+.historial{
+  list-style:none;margin:0;padding:0 0 0 6px;display:flex;flex-direction:column;gap:2px;
+}
+.hito{display:flex;gap:14px;align-items:flex-start;padding:9px 0;position:relative}
+/* La línea vertical se dibuja con el borde del punto, no con un pseudo
+   elemento por hito: así el último no arrastra una línea que no lleva a nada. */
+.hito:not(:last-child)::before{
+  content:"";position:absolute;left:3px;top:20px;bottom:-4px;width:1px;background:var(--linea);
+}
+.hito-punto{
+  flex:none;width:7px;height:7px;border-radius:50%;margin-top:6px;
+  background:var(--sello);position:relative;z-index:1;
+}
+.hito-cuerpo{flex:1;min-width:0}
+.hito-cuerpo p{
+  margin:0;font-size:13.5px;line-height:1.5;color:var(--tinta-2);overflow-wrap:anywhere;
+}
+.hito-cuerpo p b{color:var(--tinta);font-weight:600}
+.hito-cuerpo p i{color:var(--tinta-3)}
+.hito-cuerpo time{
+  display:block;margin-top:2px;font-family:var(--f-dato);font-size:10.5px;color:var(--tinta-3);
+}
+
+/* =========================================================
+   Miembros
+   ========================================================= */
+.miembros{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px}
+.miembro{
+  display:flex;align-items:center;gap:11px;padding:9px 8px;border-radius:10px;
+}
+.miembro:hover{background:var(--hoja-2)}
+.miembro-datos{flex:1;min-width:0;display:flex;flex-direction:column}
+.miembro-datos b{
+  font-family:var(--f-display);font-size:13.5px;font-weight:600;color:var(--tinta);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.miembro-datos small{
+  font-family:var(--f-dato);font-size:11px;color:var(--tinta-3);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.miembros-titulo{
+  margin:0;font-family:var(--f-display);font-size:20px;font-weight:700;
+  letter-spacing:-.02em;color:var(--tinta);
+}
+.miembros-sub{margin:4px 0 0;font-size:12.5px;color:var(--tinta-3)}
+.miembro-meta{font-family:var(--f-dato);font-size:10.5px;color:var(--tinta-3)}
+.chip.tu{
+  background:var(--sello-suave);color:var(--sello-claro);border-color:var(--linea-fuerte);
+  font-size:9.5px;padding:1px 6px;margin-left:6px;vertical-align:middle;
+}
+/* Una invitación sin aceptar no es un miembro: se ve a medias, en ámbar y
+   con el borde punteado, para que no se confunda con quien ya entró. */
+.miembro.pendiente{
+  background:color-mix(in oklab,var(--media) 6%,transparent);
+  border:1px dashed rgba(232,177,76,.28);border-radius:10px;padding:10px 8px;
+}
+.avatar-vacio{background:var(--hoja-3)!important;color:var(--tinta-3)!important}
+.chip.rol{background:var(--hoja-3);color:var(--tinta-2);border-color:var(--linea)}
+.chip.rol.propietario{background:var(--sello-suave);color:var(--sello-claro);border-color:var(--linea-fuerte)}
+
+.invitar-card{
+  padding:16px;border-radius:12px;
+  border:1px dashed var(--linea-fuerte);
+  background:color-mix(in oklab,var(--sello) 4%,transparent);
+  display:flex;flex-direction:column;gap:12px;
+}
+.invitar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.invitar input[name="email"]{flex:1 1 200px;min-width:0;min-height:42px}
+.invitar select{min-height:42px}
+.invitar button{min-height:42px}
+.invitar-card .ayuda{line-height:1.5}
+
+.roles-resumen{
+  padding:14px;border-radius:12px;background:var(--hoja-2);border:1px solid var(--linea);
+  display:grid;grid-template-columns:repeat(3,1fr);gap:14px;
+  font-size:11.5px;line-height:1.5;color:var(--tinta-3);
+}
+.roles-resumen b{
+  display:block;margin-bottom:4px;font-family:var(--f-display);
+  font-size:12px;font-weight:600;color:var(--tinta-2);
+}
+@media (max-width:560px){
+  .roles-resumen{grid-template-columns:1fr;gap:10px}
+  .invitar input[name="email"],.invitar select,.invitar button{flex:1 1 100%;min-height:46px}
+}
+
+/* Colores de tablero */
+.colores{border:0;padding:0;margin:0;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.colores legend{
+  font-family:var(--f-dato);font-size:11px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--tinta-3);padding:0;margin-bottom:8px;
+}
+/* `.hoja-form label` las pondría en columna y en versalitas; aquí solo son
+   un cuadrito de color, así que se les devuelve el display normal. */
+.color-op{display:block;cursor:pointer;line-height:0;margin:0}
+.color-op input{position:absolute;opacity:0;width:0;height:0}
+.color-op span{
+  display:block;width:28px;height:28px;border-radius:9px;
+  border:2px solid transparent;box-shadow:0 0 0 1px var(--linea);
+}
+.color-op input:checked + span{border-color:var(--papel);box-shadow:0 0 0 2px var(--tinta)}
+.color-op input:focus-visible + span{outline:2px solid var(--sello);outline-offset:3px}
+
 @media (prefers-reduced-motion:no-preference){
-  .tarjeta,.btn,.mini,.relleno,.tramo,.campo-icono,.pestanas button{
+  .tarjeta,.btn,.mini,.relleno,.tramo,.campo-icono,.pestanas button,
+  .tb-item,.tb-fila,.tb-fijar,.fichas button,.subtarea,.miembro,.adjunto,
+  .chip-filtro,.chip-x,.pildora,.saludo-cifra,.acciones-fila,
+  .avance-relleno,.saludo-progreso-relleno,.clave-fuerza span{
     transition:box-shadow .15s ease,border-color .15s ease,background .15s ease,
                color .15s ease,opacity .15s ease,width .35s cubic-bezier(.4,0,.2,1);
   }

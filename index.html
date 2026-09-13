@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Spidey — Seguimiento de tareas</title>
-<meta name="description" content="Tablero Kanban, lista, calendario e indicadores para organizar tus tareas. Instálala en tu celular y llévala contigo.">
+<meta name="description" content="Tableros compartidos con Kanban, lista, calendario e indicadores. Subtareas, comentarios, adjuntos e historial. Instálala en tu celular y llévala contigo.">
 <meta name="theme-color" content="#D30000">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
@@ -12,7 +12,7 @@
 <meta name="apple-mobile-web-app-title" content="Spidey">
 <meta name="mobile-web-app-capable" content="yes">
 <meta property="og:title" content="Spidey — Seguimiento de tareas">
-<meta property="og:description" content="Tablero Kanban, lista, calendario e indicadores. Gratis e instalable.">
+<meta property="og:description" content="Tableros compartidos, subtareas, comentarios y adjuntos. Gratis e instalable.">
 <meta property="og:type" content="website">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -41,13 +41,14 @@
 
     <div class="portada-texto">
       <p class="portada-kicker"><i aria-hidden="true"></i><span>Ideas · Tareas · Resultados</span></p>
-      <h1>Pequeñas tareas, grandes logros.</h1>
-      <p>Convierte tus planes en progreso real.</p>
+      <h1>Pequeñas tareas, <span class="acento-rojo">grandes logros.</span></h1>
+      <p>Convierte tus planes en progreso real, solo o con tu equipo.</p>
     </div>
 
     <div class="portada-pie">
       <div class="vistazo" aria-hidden="true">
         <div class="vistazo-cab"><b>Mis tareas</b><span>Hoy · 3 pendientes</span></div>
+        <div class="vistazo-progreso"><span></span></div>
         <ul>
           <li class="lista-hecho"><i></i><span>Diseñar propuesta</span><em>Hoy</em></li>
           <li><i></i><span>Revisar presupuesto</span><em>Mañana</em></li>
@@ -96,6 +97,11 @@
         </svg>
       </button>
     </div>
+    <!-- Medidor de fortaleza. Solo al crear cuenta: al entrar, la
+         contraseña ya existe y juzgarla no serviría de nada. -->
+    <div class="clave-fuerza" id="clave-fuerza" hidden aria-hidden="true">
+      <span></span><span></span><span></span><span></span>
+    </div>
     <span class="ayuda" id="ayuda-clave" hidden>Usa al menos 8 caracteres.</span>
 
     <div class="acceso-fila">
@@ -123,12 +129,45 @@
         <h1>Spidey</h1>
         <span>Seguimiento de tareas</span>
       </div>
-      <div class="pestanas" role="tablist">
-        <button role="tab" data-vista="tablero" aria-selected="true">Tablero</button>
-        <button role="tab" data-vista="lista" aria-selected="false">Lista</button>
-        <button role="tab" data-vista="calendario" aria-selected="false">Calendario</button>
-        <button role="tab" data-vista="indicadores" aria-selected="false">Indicadores</button>
+
+      <!-- Selector de tablero -->
+      <div class="tb">
+        <button class="tb-actual" id="btn-tablero" aria-haspopup="true" aria-expanded="false" aria-label="Cambiar de tablero">
+          <span id="tb-chapa"></span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M6 9l6 6 6-6"/>
+          </svg>
+        </button>
+        <div class="tb-panel" id="tb-panel" role="region" aria-label="Tus tableros" hidden></div>
       </div>
+
+      <div class="pestanas" role="tablist">
+        <button role="tab" data-vista="tablero" aria-selected="true">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true">
+            <rect x="3" y="4" width="5" height="16" rx="1.5"/><rect x="9.5" y="4" width="5" height="11" rx="1.5"/><rect x="16" y="4" width="5" height="7" rx="1.5"/>
+          </svg>
+          <span>Tablero</span>
+        </button>
+        <button role="tab" data-vista="lista" aria-selected="false">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+            <path d="M4 6h16M4 12h16M4 18h10"/>
+          </svg>
+          <span>Lista</span>
+        </button>
+        <button role="tab" data-vista="calendario" aria-selected="false">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="3" y="5" width="18" height="16" rx="2.5"/><path d="M3 10h18M8 3v4M16 3v4"/>
+          </svg>
+          <span>Calendario</span>
+        </button>
+        <button role="tab" data-vista="indicadores" aria-selected="false">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+            <path d="M5 20v-6M12 20V7M19 20v-9"/>
+          </svg>
+          <span>Indicadores</span>
+        </button>
+      </div>
+
       <div class="acciones">
         <button class="btn btn-icono" id="btn-instalar" hidden title="Instalar la app">Instalar</button>
         <button class="btn btn-icono" id="btn-tema" title="Cambiar tema" aria-label="Cambiar tema">◐</button>
@@ -144,27 +183,87 @@
         <div class="menu">
           <button class="btn btn-icono" id="btn-menu" aria-haspopup="true" aria-expanded="false" aria-label="Menú de cuenta">⋯</button>
           <div class="menu-lista" id="menu-lista" hidden>
-            <span class="menu-correo" id="menu-correo"></span>
+            <button type="button" class="menu-perfil" data-accion="mi-nombre" title="Cambiar cómo apareces">
+              <span class="avatar" id="menu-avatar"></span>
+              <span class="menu-perfil-txt">
+                <b id="menu-nombre"></b>
+                <small class="menu-correo" id="menu-correo"></small>
+              </span>
+            </button>
+
+            <!-- El estado de los recordatorios se ve sin abrir nada: es la
+                 clase de ajuste que se olvida activado o desactivado. -->
+            <button type="button" class="menu-card-recordatorios inactivo" id="mi-recordatorios" data-accion="recordatorios">
+              <span class="mcr-txt">
+                <b id="mcr-estado">Recordatorios desactivados</b>
+                <small id="mcr-nota">No recibirás avisos de vencimientos</small>
+              </span>
+              <span class="mcr-accion">Cambiar</span>
+            </button>
+
+            <span class="menu-grupo">Este tablero</span>
+            <button type="button" data-accion="miembros">Miembros y permisos</button>
+            <button type="button" data-accion="historial-tablero">Historial del tablero</button>
+            <button type="button" data-accion="editar-tablero" id="mi-editar-tablero">Renombrar tablero</button>
+            <button type="button" data-accion="nuevo-tablero">Nuevo tablero</button>
+
+            <span class="menu-grupo">Exportar</span>
             <button type="button" data-accion="csv">Exportar CSV</button>
             <button type="button" data-accion="json">Descargar respaldo</button>
-            <button type="button" data-accion="salir">Cerrar sesión</button>
+
+            <div class="menu-peligro">
+              <button type="button" data-accion="salir">Cerrar sesión</button>
+              <button type="button" data-accion="salir-tablero" id="mi-salir-tablero" class="peligro">Salir del tablero</button>
+              <button type="button" data-accion="borrar-tablero" id="mi-borrar-tablero" class="peligro">Eliminar tablero</button>
+              <button type="button" data-accion="eliminar-cuenta" class="peligro">Eliminar mi cuenta</button>
+            </div>
           </div>
         </div>
         <button class="btn btn-p" id="btn-nueva">+ Nueva tarea</button>
       </div>
     </div>
     <div class="filtros">
-      <input class="campo" id="buscar" type="search" placeholder="Buscar por título, nota o etiqueta…" aria-label="Buscar tareas">
-      <select class="campo" id="f-responsable" aria-label="Filtrar por responsable"><option value="">Todos los responsables</option></select>
-      <select class="campo" id="f-etiqueta" aria-label="Filtrar por etiqueta"><option value="">Todas las etiquetas</option></select>
-      <select class="campo" id="f-prioridad" aria-label="Filtrar por prioridad">
-        <option value="">Toda prioridad</option>
-        <option value="alta">Alta</option>
-        <option value="media">Media</option>
-        <option value="baja">Baja</option>
-      </select>
-      <button class="btn" id="btn-limpiar" hidden>Limpiar filtros</button>
-      <div class="estado-nube"><span class="punto" id="punto"></span><span id="texto-nube">Conectando…</span></div>
+      <div class="busqueda">
+        <input class="campo" id="buscar" type="search" placeholder="Buscar por título, nota o etiqueta…" aria-label="Buscar tareas">
+        <kbd class="atajo" id="atajo-buscar">Ctrl K</kbd>
+      </div>
+
+      <!-- Un filtro sin usar es una invitación ("+ responsable"); uno aplicado
+           es un chip pleno con su × para quitarlo. El <select> sigue siendo
+           nativo por debajo: es lo que mejor funciona con teclado y en el
+           celular, y lo que ya sabe leer un lector de pantalla. -->
+      <div class="filtros-chips">
+        <span class="chip-filtro sin-poner" data-chip="responsable">
+          <select id="f-responsable" aria-label="Filtrar por responsable"><option value="">+ responsable</option></select>
+          <button type="button" class="chip-x" data-limpiar-filtro="responsable" hidden aria-label="Quitar el filtro de responsable">×</button>
+        </span>
+        <span class="chip-filtro sin-poner" data-chip="etiqueta">
+          <select id="f-etiqueta" aria-label="Filtrar por etiqueta"><option value="">+ etiqueta</option></select>
+          <button type="button" class="chip-x" data-limpiar-filtro="etiqueta" hidden aria-label="Quitar el filtro de etiqueta">×</button>
+        </span>
+        <span class="chip-filtro sin-poner" data-chip="prioridad">
+          <select id="f-prioridad" aria-label="Filtrar por prioridad">
+            <option value="">+ prioridad</option>
+            <option value="alta">Alta</option>
+            <option value="media">Media</option>
+            <option value="baja">Baja</option>
+          </select>
+          <button type="button" class="chip-x" data-limpiar-filtro="prioridad" hidden aria-label="Quitar el filtro de prioridad">×</button>
+        </span>
+        <!-- Este no se elige desde aquí: lo enciende el enlace "Ver todas"
+             del indicador de vencidas. Aparece para poder quitarlo. -->
+        <span class="chip-filtro aplicado" data-chip="vencidas" hidden>
+          <span class="chip-et">Solo vencidas</span>
+          <button type="button" class="chip-x" data-limpiar-filtro="vencidas" aria-label="Quitar el filtro de vencidas">×</button>
+        </span>
+        <button class="btn btn-limpiar-todo" id="btn-limpiar" hidden>Limpiar todo</button>
+      </div>
+
+      <div class="estado-nube">
+        <span class="punto" id="punto"></span>
+        <span id="texto-nube">Conectando…</span>
+        <span class="contador-tareas" id="contador-tareas"></span>
+      </div>
     </div>
   </header>
 
@@ -174,6 +273,22 @@
       <path d="M400 0 L0 400 M400 0 L0 200 M400 0 L200 400 M400 0 L0 90 M400 0 L310 400"/>
       <path d="M330 0 Q360 40 400 70 M260 0 Q320 80 400 140 M190 0 Q280 120 400 210 M115 0 Q240 160 400 285"/>
     </svg>
+    <!-- Saludo de bienvenida. Solo se ve en pantallas pequeñas: en el
+         escritorio hay sitio de sobra para los datos y no hace falta
+         explicarle a nadie dónde está parado. -->
+    <section class="saludo" id="saludo" hidden aria-live="polite">
+      <button type="button" class="icono-quitar" id="btn-cerrar-saludo" aria-label="Ocultar el saludo">×</button>
+      <p class="saludo-fecha" id="saludo-fecha"></p>
+      <p class="saludo-hola" id="saludo-hola"></p>
+      <p class="saludo-resumen" id="saludo-resumen"></p>
+      <div class="saludo-semana" id="saludo-semana" hidden>
+        <div class="saludo-progreso"><span class="saludo-progreso-relleno" id="saludo-progreso"></span></div>
+        <p class="saludo-semana-txt" id="saludo-semana-txt"></p>
+      </div>
+      <div class="saludo-cifras" id="saludo-cifras"></div>
+    </section>
+
+    <p class="aviso-solo-lectura" id="aviso-lectura" hidden>Estás en este tablero como <b>solo lectura</b>: puedes mirar y comentar, pero no cambiar tareas.</p>
     <section id="vista-tablero" style="position:relative"></section>
     <section id="vista-lista" style="position:relative" hidden></section>
     <section id="vista-calendario" style="position:relative" hidden></section>
@@ -181,54 +296,158 @@
   </main>
 </div>
 
-<!-- ===== Formulario de tarea ===== -->
+<!-- ===== Ficha de tarea ===== -->
 <div class="telon" id="telon" hidden>
-  <form class="hoja-form" id="form">
-    <h2 id="form-titulo">Nueva tarea</h2>
-    <label>Título
-      <input class="campo" name="titulo" required maxlength="140" placeholder="Ej. Enviar propuesta al cliente">
-    </label>
-    <label>Notas
-      <textarea class="campo" name="notas" maxlength="1200" placeholder="Detalles, enlaces, siguiente paso…"></textarea>
-    </label>
-    <div class="form-fila">
-      <label>Estado
-        <select class="campo" name="estado">
-          <option value="por_hacer">Por hacer</option>
-          <option value="en_curso">En curso</option>
-          <option value="en_revision">En revisión</option>
-          <option value="hecho">Hecho</option>
-        </select>
-      </label>
-      <label>Prioridad
-        <select class="campo" name="prioridad">
-          <option value="alta">Alta</option>
-          <option value="media" selected>Media</option>
-          <option value="baja">Baja</option>
-        </select>
-      </label>
+  <div class="hoja-form hoja-ficha" role="dialog" aria-modal="true" aria-labelledby="form-titulo">
+
+    <!-- Cabezal: de dónde viene la tarea, su título y sus metadatos.
+         Los campos van asociados al formulario con form="form" aunque
+         estén fuera de él, para que el cabezal no se repinte nunca y no
+         te quite el cursor mientras escribes. -->
+    <header class="ficha-cab">
+      <div class="ficha-meta-top">
+        <span class="ficha-id" id="ficha-id" hidden></span>
+        <span class="sep" id="ficha-sep-1" hidden></span>
+        <span class="ficha-tablero" id="ficha-tablero"></span>
+        <span class="sep" id="ficha-sep-2" hidden></span>
+        <span class="ficha-origen" id="ficha-origen" hidden></span>
+        <span class="ficha-estado-guardado" id="ficha-guardado" hidden>
+          <span class="punto on"></span><span id="ficha-guardado-txt">Guardado</span>
+        </span>
+        <button type="button" class="icono-quitar grande" id="btn-cerrar-form" aria-label="Cerrar">×</button>
+      </div>
+
+      <h2 id="form-titulo" class="sr-solo">Nueva tarea</h2>
+      <input class="ficha-titulo-edit" id="titulo-grande" form="form" name="titulo" required
+             maxlength="140" placeholder="¿Qué hay que hacer?" aria-label="Título de la tarea"
+             autocomplete="off">
+
+      <!-- Metadatos como píldoras en fila, no como etiquetas apiladas.
+           Cada una es un control nativo disfrazado: así funcionan el
+           teclado, el lector de pantalla y el selector de fecha del
+           celular sin reimplementar nada. -->
+      <div class="ficha-pildoras">
+        <span class="pildora pildora-sel" data-campo="estado">
+          <span class="raya" id="pildora-raya"></span>
+          <select form="form" name="estado" aria-label="Estado">
+            <option value="por_hacer">Por hacer</option>
+            <option value="en_curso">En curso</option>
+            <option value="en_revision">En revisión</option>
+            <option value="hecho">Hecho</option>
+          </select>
+        </span>
+
+        <span class="pildora pildora-sel" data-campo="prioridad">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M13 2 4 14h7l-1 8 9-12h-7l1-8Z"/>
+          </svg>
+          <select form="form" name="prioridad" aria-label="Prioridad">
+            <option value="alta">Alta</option>
+            <option value="media" selected>Media</option>
+            <option value="baja">Baja</option>
+          </select>
+        </span>
+
+        <span class="pildora" data-campo="responsable">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="8" r="3.6"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/>
+          </svg>
+          <input form="form" name="responsable" list="lista-personas" maxlength="60"
+                 placeholder="Sin responsable" aria-label="Responsable" autocomplete="off">
+        </span>
+
+        <span class="pildora" data-campo="vence">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="3" y="5" width="18" height="16" rx="2.5"/><path d="M3 10h18M8 3v4M16 3v4"/>
+          </svg>
+          <input form="form" name="vence" type="date" aria-label="Fecha límite">
+        </span>
+
+        <span class="pildora punteada" data-campo="etiquetas">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0l-7.2-7.2A2 2 0 0 1 2.8 12V4.8A2 2 0 0 1 4.8 2.8H12a2 2 0 0 1 1.4.6l7.2 7.2a2 2 0 0 1 0 2.8Z"/><circle cx="7.5" cy="7.5" r="1.2"/>
+          </svg>
+          <input form="form" name="etiquetas" list="lista-etiquetas" maxlength="160"
+                 placeholder="+ etiqueta" aria-label="Etiquetas, separadas con comas" autocomplete="off">
+        </span>
+      </div>
+
+      <datalist id="lista-personas"></datalist>
+      <datalist id="lista-etiquetas"></datalist>
+    </header>
+
+    <!-- Las pestañas solo aparecen al editar: comentarios, adjuntos e
+         historial necesitan que la tarea ya exista en la base de datos. -->
+    <div class="fichas" id="fichas-tarea" role="tablist" hidden>
+      <button type="button" role="tab" data-ficha="detalles" aria-selected="true">
+        Detalles<span class="ficha-contador" id="cont-subtareas"></span>
+      </button>
+      <button type="button" role="tab" data-ficha="comentarios" aria-selected="false">
+        Comentarios<span class="ficha-contador" id="cont-comentarios"></span>
+      </button>
+      <button type="button" role="tab" data-ficha="adjuntos" aria-selected="false">
+        Adjuntos<span class="ficha-contador" id="cont-adjuntos"></span>
+      </button>
+      <button type="button" role="tab" data-ficha="historial" aria-selected="false">Historial</button>
     </div>
-    <div class="form-fila">
-      <label>Responsable
-        <input class="campo" name="responsable" list="lista-personas" maxlength="60" placeholder="Nombre">
-      </label>
-      <label>Fecha límite
-        <input class="campo" name="vence" type="date">
-      </label>
-    </div>
-    <datalist id="lista-personas"></datalist>
-    <label>Etiquetas
-      <input class="campo" name="etiquetas" list="lista-etiquetas" maxlength="160" placeholder="cliente-acme, facturación">
-      <span class="ayuda">Sepáralas con comas.</span>
-    </label>
-    <datalist id="lista-etiquetas"></datalist>
-    <div class="pie-form">
+
+    <section class="ficha" data-ficha="detalles">
+      <form id="form">
+        <label>Notas
+          <textarea class="campo" name="notas" maxlength="1200" placeholder="Detalles, enlaces, siguiente paso…"></textarea>
+        </label>
+        <label id="campo-mover" hidden>Mover a otro tablero
+          <select class="campo" id="mover-tablero"></select>
+          <span class="ayuda">La tarea se lleva consigo subtareas, comentarios y adjuntos.</span>
+        </label>
+      </form>
+
+      <!-- Las subtareas viven aquí, no en una pestaña aparte: son parte de
+           cómo se define la tarea, no un anexo. Van en su propio contenedor
+           para que repintarlas no toque el formulario de arriba. -->
+      <div class="sub-bloque" id="bloque-subtareas" hidden>
+        <h4 class="mini-titulo">Subtareas</h4>
+        <div id="panel-subtareas"></div>
+      </div>
+    </section>
+
+    <section class="ficha" data-ficha="comentarios" id="panel-comentarios" hidden></section>
+    <section class="ficha" data-ficha="adjuntos"   id="panel-adjuntos"   hidden></section>
+    <section class="ficha" data-ficha="historial"  id="panel-historial"  hidden></section>
+
+    <footer class="ficha-pie">
       <button type="button" class="btn btn-borrar" id="btn-borrar" hidden>Eliminar</button>
-      <button type="button" class="btn" id="btn-cancelar">Cancelar</button>
-      <button type="submit" class="btn btn-p">Guardar</button>
-    </div>
-  </form>
+      <span class="ficha-guardado-texto" id="ficha-pie-texto"></span>
+      <button type="button" class="btn" id="btn-cancelar">Cerrar</button>
+      <button type="button" class="btn btn-p" id="btn-hecha" hidden>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M4 12.5 9.5 18 20 6.5"/>
+        </svg>
+        <span id="btn-hecha-txt">Marcar hecha</span>
+      </button>
+      <button type="submit" class="btn btn-p" id="btn-guardar" form="form">Crear tarea</button>
+    </footer>
+  </div>
 </div>
+
+<!-- ===== Hoja genérica: miembros, historial del tablero, nuevo tablero ===== -->
+<div class="telon" id="telon-hoja" hidden>
+  <div class="hoja-form" role="dialog" aria-modal="true" aria-labelledby="hoja-titulo">
+    <div class="hoja-cab">
+      <h2 id="hoja-titulo">Tablero</h2>
+      <button type="button" class="icono-quitar grande" id="btn-cerrar-hoja" aria-label="Cerrar">×</button>
+    </div>
+    <div id="hoja-cuerpo"></div>
+  </div>
+</div>
+
+<!-- Botón flotante de nueva tarea. Solo en el celular, y colocado abajo a
+     la derecha, que es donde alcanza el pulgar sin recolocar la mano. -->
+<button class="fab-nueva" id="fab-nueva" aria-label="Nueva tarea" title="Nueva tarea">
+  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
+    <path d="M12 5v14M5 12h14"/>
+  </svg>
+</button>
 
 <div class="brindis" id="brindis" role="status" aria-live="polite" hidden></div>
 
