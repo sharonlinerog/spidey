@@ -566,12 +566,20 @@ begin
   -- Quien creó la tarea, donde aún no conste.
   execute 'update public.tareas set creada_por = user_id where creada_por is null and user_id is not null';
 
-  -- Si algo sigue dependiendo de la columna vieja, se deja estar: sobra una
-  -- columna sin usar, pero no se pierde nada y el resto queda funcionando.
+  -- La columna vieja NO se borra.
+  --
+  -- Ya no se usa —quien creó la tarea vive ahora en `creada_por`—, pero
+  -- borrarla sería el único paso de todo este script que destruye algo, y
+  -- en el plan Free de Supabase no hay respaldo automático al que volver.
+  -- Basta con quitarle el "not null" para que la app pueda crear tareas
+  -- sin rellenarla. Queda una columna de sobra, que no molesta a nadie y
+  -- se puede retirar más adelante con calma:
+  --
+  --     alter table public.tareas drop column user_id;
   begin
-    execute 'alter table public.tareas drop column user_id';
+    execute 'alter table public.tareas alter column user_id drop not null';
   exception when others then
-    raise notice 'No se pudo retirar tareas.user_id: %', sqlerrm;
+    raise notice 'No se pudo soltar el not null de tareas.user_id: %', sqlerrm;
   end;
 end
 $$;

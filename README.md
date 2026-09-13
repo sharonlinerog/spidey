@@ -41,7 +41,9 @@ También necesitas [Node.js 18 o superior](https://nodejs.org) si vas a correrla
 
 ### ¿Vienes de una versión anterior?
 
-`schema.sql` **migra tus datos solo**, vengas de donde vengas. Antes de correrlo haz un respaldo desde **Database → Backups**; es un clic y te deja dormir tranquila.
+`schema.sql` **migra tus datos solo**, vengas de donde vengas, y **no borra nada**: solo añade tablas, columnas y filas. La única columna que deja de usarse (`tareas.user_id`) se conserva; se le quita la obligación de venir rellena y ahí se queda.
+
+Aun así, antes de correrlo conviene tener una copia. En el plan Pro está en **Database → Backups**. En el **plan Free no hay respaldos descargables**, así que usa [`supabase/respaldo.sql`](supabase/respaldo.sql): lo ejecutas en el SQL Editor, devuelve una sola celda con todos tus datos en JSON, y la copias a un archivo de texto.
 
 **Si tenías la v1** (tareas con columna `user_id`, sin tableros): le crea a cada persona un tablero llamado «Mis tareas», mete ahí sus tareas, la deja como propietaria y retira la columna vieja.
 
