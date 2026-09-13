@@ -165,11 +165,30 @@ $$(".pestanas-acceso button").forEach((b) =>
     );
     el("btn-acceso-texto").textContent = modoAcceso === "crear" ? "Crear cuenta" : "Entrar";
     el("ayuda-clave").hidden = modoAcceso !== "crear";
+    el("clave-fuerza").hidden = modoAcceso !== "crear";
     el("form-acceso").password.autocomplete =
       modoAcceso === "crear" ? "new-password" : "current-password";
     avisoAcceso("");
   })
 );
+
+/**
+ * Fortaleza de la contraseña, de 0 a 4. No bloquea nada —el mínimo real
+ * son 8 caracteres y lo impone el servidor—; solo enseña que una clave
+ * más larga y variada es más difícil de adivinar.
+ */
+function fuerzaClave(v) {
+  let p = 0;
+  if (v.length >= 8) p++;
+  if (v.length >= 12) p++;
+  if (/[A-Z]/.test(v) && /[a-z]/.test(v)) p++;
+  if (/\d/.test(v) && /[^\w\s]/.test(v)) p++;
+  return Math.min(p, 4);
+}
+
+el("acceso-clave").addEventListener("input", (e) => {
+  el("clave-fuerza").dataset.n = e.target.value ? fuerzaClave(e.target.value) : 0;
+});
 
 el("btn-ojo").addEventListener("click", () => {
   const campo = el("acceso-clave");

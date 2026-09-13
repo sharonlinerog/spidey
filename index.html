@@ -41,13 +41,14 @@
 
     <div class="portada-texto">
       <p class="portada-kicker"><i aria-hidden="true"></i><span>Ideas · Tareas · Resultados</span></p>
-      <h1>Pequeñas tareas, grandes logros.</h1>
+      <h1>Pequeñas tareas, <span class="acento-rojo">grandes logros.</span></h1>
       <p>Convierte tus planes en progreso real, solo o con tu equipo.</p>
     </div>
 
     <div class="portada-pie">
       <div class="vistazo" aria-hidden="true">
         <div class="vistazo-cab"><b>Mis tareas</b><span>Hoy · 3 pendientes</span></div>
+        <div class="vistazo-progreso"><span></span></div>
         <ul>
           <li class="lista-hecho"><i></i><span>Diseñar propuesta</span><em>Hoy</em></li>
           <li><i></i><span>Revisar presupuesto</span><em>Mañana</em></li>
@@ -95,6 +96,11 @@
           <path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12Z"/><circle cx="12" cy="12" r="2.8"/>
         </svg>
       </button>
+    </div>
+    <!-- Medidor de fortaleza. Solo al crear cuenta: al entrar, la
+         contraseña ya existe y juzgarla no serviría de nada. -->
+    <div class="clave-fuerza" id="clave-fuerza" hidden aria-hidden="true">
+      <span></span><span></span><span></span><span></span>
     </div>
     <span class="ayuda" id="ayuda-clave" hidden>Usa al menos 8 caracteres.</span>
 

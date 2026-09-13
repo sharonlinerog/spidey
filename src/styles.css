@@ -266,6 +266,26 @@ select.campo{cursor:pointer}
 }
 .btn-ojo:hover{background:var(--sello-suave);color:var(--tinta)}
 
+.acento-rojo{color:var(--sello)}
+
+/* Medidor de fortaleza: cuatro segmentos que se encienden de rojo a verde.
+   No bloquea nada; el mínimo real lo impone el servidor. */
+.clave-fuerza{display:flex;gap:3px;margin:-10px 0 14px;height:3px}
+.clave-fuerza span{flex:1;background:var(--hoja-3);border-radius:2px}
+.clave-fuerza[data-n="1"] span:nth-child(-n+1),
+.clave-fuerza[data-n="2"] span:nth-child(-n+2){background:var(--alerta)}
+.clave-fuerza[data-n="3"] span:nth-child(-n+3){background:var(--media)}
+.clave-fuerza[data-n="4"] span{background:var(--ok)}
+
+/* Barra de avance en la tarjeta de muestra de la portada. */
+.vistazo-progreso{
+  height:4px;background:var(--hoja-3);border-radius:2px;margin-bottom:14px;overflow:hidden;
+}
+.vistazo-progreso span{
+  display:block;height:100%;width:35%;border-radius:2px;
+  background:linear-gradient(90deg,var(--sello),var(--sello-hondo));
+}
+
 .acceso-fila{display:flex;align-items:center;justify-content:flex-end;gap:16px;margin:2px 0 24px}
 .aviso-acceso{
   margin:0 0 18px;padding:11px 13px;border-radius:10px;font-size:13.5px;
@@ -1462,7 +1482,9 @@ td.col-titulo .insignias{margin-top:6px}
 
 @media (prefers-reduced-motion:no-preference){
   .tarjeta,.btn,.mini,.relleno,.tramo,.campo-icono,.pestanas button,
-  .tb-item,.fichas button,.subtarea,.miembro,.adjunto,.avance-relleno{
+  .tb-item,.tb-fila,.tb-fijar,.fichas button,.subtarea,.miembro,.adjunto,
+  .chip-filtro,.chip-x,.pildora,.saludo-cifra,.acciones-fila,
+  .avance-relleno,.saludo-progreso-relleno,.clave-fuerza span{
     transition:box-shadow .15s ease,border-color .15s ease,background .15s ease,
                color .15s ease,opacity .15s ease,width .35s cubic-bezier(.4,0,.2,1);
   }
