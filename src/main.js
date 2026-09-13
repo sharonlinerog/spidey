@@ -26,6 +26,7 @@ let vista = "tablero";
 let filtros = { q: "", responsable: "", etiqueta: "", prioridad: "" };
 let cursorMes = new Date();
 let ordenLista = { campo: "vence", dir: "asc" };
+let agrupaLista = leerAjuste("spidey-agrupamiento", "estado");
 let editandoId = null;
 let ficha = "detalles";
 let modoAcceso = "entrar";
@@ -40,6 +41,30 @@ const meta = {
   comentarios: (id) => store.cuantosComentarios(id),
   adjuntos: (id) => store.cuantosAdjuntos(id),
 };
+
+/* ===================== preferencias de la vista ===================== */
+
+/**
+ * Ajustes de interfaz que viven solo en este dispositivo: cómo agrupas la
+ * lista, si ves el calendario por mes o por semana. No son datos de la
+ * persona, así que no tienen por qué viajar al servidor.
+ */
+function leerAjuste(clave, porDefecto) {
+  try {
+    const v = localStorage.getItem(clave);
+    return v === null ? porDefecto : v;
+  } catch {
+    return porDefecto;
+  }
+}
+
+function guardarAjuste(clave, valor) {
+  try {
+    localStorage.setItem(clave, valor);
+  } catch {
+    /* sin almacenamiento: el ajuste dura lo que dure la pestaña */
+  }
+}
 
 /* ===================== avisos ===================== */
 
@@ -215,7 +240,7 @@ function pintar() {
   pintarContadorTareas();
 
   if (vista === "tablero") el("vista-tablero").innerHTML = tablero(tareas, filtros, cargado, meta);
-  else if (vista === "lista") el("vista-lista").innerHTML = listaTabla(tareas, filtros, ordenLista, meta);
+  else if (vista === "lista") el("vista-lista").innerHTML = listaTabla(tareas, filtros, ordenLista, meta, agrupaLista);
   else if (vista === "calendario") el("vista-calendario").innerHTML = calendario(tareas, filtros, cursorMes);
   else el("vista-indicadores").innerHTML = indicadores(tareas, filtros);
 
@@ -653,6 +678,26 @@ document.addEventListener("click", async (e) => {
   const mv = e.target.closest("[data-mover]");
   if (mv) { moverRelativo(mv.dataset.id, parseInt(mv.dataset.mover, 10)); return; }
 
+  const ag = e.target.closest("[data-agrupar]");
+  if (ag) {
+    agrupaLista = ag.dataset.agrupar;
+    guardarAjuste("spidey-agrupamiento", agrupaLista);
+    pintar();
+    return;
+  }
+
+  const dup = e.target.closest("[data-duplicar]");
+  if (dup) { await duplicar(dup.dataset.duplicar); return; }
+
+  const del = e.target.closest("[data-eliminar]");
+  if (del) {
+    const t = tareas.find((x) => x.id === del.dataset.eliminar);
+    if (!t) return;
+    if (!confirm(`¿Eliminar «${t.titulo}»? También se borran sus subtareas, comentarios y adjuntos.`)) return;
+    reportar(await store.eliminar(t.id));
+    return;
+  }
+
   const th = e.target.closest("th[data-orden]");
   if (th) {
     const c = th.dataset.orden;
@@ -736,6 +781,16 @@ document.addEventListener("submit", async (e) => {
 
 /* Casillas de subtarea y selectores de rol: cambian, no se "clican". */
 document.addEventListener("change", async (e) => {
+  // Marcar una tarea como hecha desde la lista, sin abrir su ficha.
+  const marca = e.target.closest("[data-marcar]");
+  if (marca) {
+    const t = tareas.find((x) => x.id === marca.dataset.marcar);
+    if (!t) return;
+    const destino = marca.checked ? "hecho" : "por_hacer";
+    await cambiarEstado(t, destino, t.posicion);
+    return;
+  }
+
   const cb = e.target.closest("[data-subtarea]");
   if (cb) {
     const r = await store.alternarSubtarea(cb.dataset.subtarea);
@@ -802,6 +857,25 @@ async function moverRelativo(id, paso) {
   const i = ESTADOS.findIndex((e) => e.id === t.estado) + paso;
   if (i < 0 || i >= ESTADOS.length) return;
   await cambiarEstado(t, ESTADOS[i].id, Date.now());
+}
+
+/**
+ * Duplica una tarea. Copia los campos, no las subtareas ni los comentarios:
+ * duplicar sirve para repetir la forma de un trabajo, no su conversación.
+ */
+async function duplicar(id) {
+  const t = tareas.find((x) => x.id === id);
+  if (!t) return;
+  const copia = {
+    ...t,
+    id: crypto.randomUUID(),
+    titulo: ("Copia de " + t.titulo).slice(0, 140),
+    estado: "por_hacer",
+    completada: null,
+    posicion: Date.now(),
+    creada: new Date().toISOString(),
+  };
+  if (reportar(await store.guardar(copia), "Tarea duplicada.")) abrir(copia.id);
 }
 
 async function cambiarEstado(t, estado, posicion) {

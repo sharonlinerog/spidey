@@ -210,10 +210,35 @@ function tarjeta(t, meta = SIN_META) {
 
 /* ---------------- lista ---------------- */
 
-export function listaTabla(tareas, filtros, orden, meta = SIN_META) {
+/** Cómo se agrupa la lista, y con qué encabezado se anuncia cada grupo. */
+const AGRUPAMIENTOS = [
+  { id: "estado", label: "Estado" },
+  { id: "responsable", label: "Responsable" },
+  { id: "prioridad", label: "Prioridad" },
+  { id: "", label: "Ninguno" },
+];
+
+/** Devuelve la clave de grupo de una tarea, ya lista para mostrarse. */
+function grupoDe(t, por) {
+  if (por === "estado") return { clave: t.estado, label: ETIQ_ESTADO[t.estado], raya: t.estado };
+  if (por === "prioridad") return { clave: t.prioridad, label: ETIQ_PRIO[t.prioridad], raya: "" };
+  if (por === "responsable")
+    return { clave: t.responsable || "", label: t.responsable || "Sin responsable", raya: "" };
+  return { clave: "", label: "", raya: "" };
+}
+
+export function listaTabla(tareas, filtros, orden, meta = SIN_META, agrupar = "estado") {
   const base = [...filtrar(tareas, filtros)];
+
+  const barra = `<div class="lista-agrupar">
+    <span class="lista-agrupar-et">Agrupar por</span>
+    ${AGRUPAMIENTOS.map(
+      (a) => `<button type="button" class="chip agrupar" data-agrupar="${a.id}" aria-selected="${String(a.id === agrupar)}">${a.label}</button>`
+    ).join("")}
+  </div>`;
+
   if (!base.length)
-    return vacio("Nada por aquí", "Ninguna tarea coincide con los filtros activos.", !tareas.length);
+    return barra + vacio("Nada por aquí", "Ninguna tarea coincide con los filtros activos.", !tareas.length);
 
   const dir = orden.dir === "asc" ? 1 : -1;
   const pesoP = { alta: 0, media: 1, baja: 2 };
@@ -227,30 +252,73 @@ export function listaTabla(tareas, filtros, orden, meta = SIN_META) {
     return x < y ? -dir : x > y ? dir : 0;
   });
 
-  const flecha = (k) => (orden.campo === k ? (orden.dir === "asc" ? " ↑" : " ↓") : "");
-  const guion = '<span style="color:var(--tinta-3)">—</span>';
+  // Agrupar es reordenar: primero por grupo, y dentro de cada grupo se
+  // respeta el orden de columna que la persona eligió.
+  if (agrupar) {
+    const peso = (t) => {
+      if (agrupar === "estado") return pesoE[t.estado];
+      if (agrupar === "prioridad") return pesoP[t.prioridad];
+      return (t.responsable || "￿").toLowerCase();
+    };
+    base.sort((a, b) => {
+      const x = peso(a), y = peso(b);
+      return x < y ? -1 : x > y ? 1 : 0;
+    });
+  }
 
-  return `<div class="envoltura-tabla"><table><thead><tr>
-    <th data-orden="titulo">Tarea${flecha("titulo")}</th>
-    <th data-orden="estado">Estado${flecha("estado")}</th>
-    <th data-orden="prioridad">Prioridad${flecha("prioridad")}</th>
-    <th data-orden="responsable">Responsable${flecha("responsable")}</th>
-    <th data-orden="vence">Fecha límite${flecha("vence")}</th>
-    <th>Etiquetas</th><th></th></tr></thead><tbody>${base
-      .map((t) => {
-        const v = vencida(t);
-        const a = meta.avance(t.id);
-        return `<tr><td class="col-titulo">${esc(t.titulo)}
+  const flecha = (k) => (orden.campo === k ? (orden.dir === "asc" ? " ↑" : " ↓") : "");
+  const guion = '<span class="guion">—</span>';
+  const COLUMNAS = 8;
+
+  let grupoActual = null;
+  const filas = base
+    .map((t) => {
+      let cabecera = "";
+      if (agrupar) {
+        const g = grupoDe(t, agrupar);
+        if (g.clave !== grupoActual) {
+          grupoActual = g.clave;
+          const cuantas = base.filter((x) => grupoDe(x, agrupar).clave === g.clave).length;
+          cabecera = `<tr class="grupo-cab"><td colspan="${COLUMNAS}">
+            ${g.raya ? `<span class="raya ${g.raya}"></span>` : ""}${esc(g.label)}
+            <span class="grupo-cuenta">${cuantas}</span>
+          </td></tr>`;
+        }
+      }
+
+      const v = vencida(t);
+      const a = meta.avance(t.id);
+      const hecha = t.estado === "hecho";
+
+      return `${cabecera}<tr${hecha ? ' class="fila-hecha"' : ""}>
+        <td class="col-marca">
+          <input type="checkbox" class="marca-hecha" data-marcar="${t.id}" ${hecha ? "checked" : ""}
+                 aria-label="Marcar «${esc(t.titulo)}» como hecha">
+        </td>
+        <td class="col-titulo">${esc(t.titulo)}
           ${a ? `<span class="mini-avance${a.hechas === a.total ? " completo" : ""}">${a.hechas}/${a.total} subtareas</span>` : ""}
           ${insignias(t, meta)}</td>
         <td><span class="marca-estado"><span class="raya ${t.estado}"></span>${ETIQ_ESTADO[t.estado]}</span></td>
         <td><span class="chip ${t.prioridad}">${ETIQ_PRIO[t.prioridad]}</span></td>
         <td>${t.responsable ? `<span class="quien"><span class="avatar" style="background:${colorPersona(t.responsable)}">${esc(iniciales(t.responsable))}</span><span>${esc(t.responsable)}</span></span>` : guion}</td>
-        <td>${t.vence ? `<span class="chip fecha${v ? " vencida" : ""}">${fechaCorta(t.vence)}</span>` : guion}</td>
+        <td>${t.vence ? `<span class="chip fecha${v ? " vencida" : ""}" title="${esc(fechaCorta(t.vence))}">${fechaRelativa(t.vence)}</span>` : guion}</td>
         <td>${(t.etiquetas || []).map((e) => `<span class="chip etiqueta">${esc(e)}</span>`).join(" ") || guion}</td>
-        <td><button class="editar" data-editar="${t.id}">Editar</button></td></tr>`;
-      })
-      .join("")}</tbody></table></div>`;
+        <td><div class="acciones-fila">
+          <button type="button" data-editar="${t.id}">Editar</button>
+          <button type="button" data-duplicar="${t.id}">Duplicar</button>
+          <button type="button" class="peligro" data-eliminar="${t.id}">Eliminar</button>
+        </div></td></tr>`;
+    })
+    .join("");
+
+  return `${barra}<div class="envoltura-tabla"><table><thead><tr>
+    <th class="col-marca"><span class="sr-solo">Hecha</span></th>
+    <th data-orden="titulo">Tarea${flecha("titulo")}</th>
+    <th data-orden="estado">Estado${flecha("estado")}</th>
+    <th data-orden="prioridad">Prioridad${flecha("prioridad")}</th>
+    <th data-orden="responsable">Responsable${flecha("responsable")}</th>
+    <th data-orden="vence">Fecha límite${flecha("vence")}</th>
+    <th>Etiquetas</th><th></th></tr></thead><tbody>${filas}</tbody></table></div>`;
 }
 
 /* ---------------- calendario ---------------- */

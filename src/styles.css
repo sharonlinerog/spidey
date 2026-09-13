@@ -576,6 +576,33 @@ main{max-width:1560px;margin:0 auto;padding:28px 40px 64px;position:relative;ove
 .agregar-col:hover{border-color:var(--sello);color:var(--sello-claro);background:rgba(211,0,0,.06)}
 
 /* ===================== Lista ===================== */
+/* Texto solo para lectores de pantalla: encabezados de columna que en
+   pantalla se entienden sin palabras, pero que dictados harían falta. */
+.sr-solo{
+  position:absolute;width:1px;height:1px;padding:0;margin:-1px;
+  overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0;
+}
+
+.lista-agrupar{
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+  padding:10px 16px;margin-bottom:14px;border-radius:var(--r-g);
+  background:var(--hoja-2);border:1px solid var(--linea);font-size:12px;
+}
+.lista-agrupar-et{
+  font-family:var(--f-dato);font-size:10.5px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--tinta-3);margin-right:2px;
+}
+.lista-agrupar .chip.agrupar{
+  cursor:pointer;background:transparent;border-color:var(--linea);
+  color:var(--tinta-2);font-family:var(--f-texto);min-height:30px;
+  display:inline-flex;align-items:center;
+}
+.lista-agrupar .chip.agrupar:hover{border-color:var(--sello);color:var(--tinta)}
+.lista-agrupar .chip.agrupar[aria-selected="true"]{
+  background:var(--sello-suave);color:var(--sello-claro);border-color:var(--linea-fuerte);
+}
+@media (max-width:760px){.lista-agrupar .chip.agrupar{min-height:44px}}
+
 .envoltura-tabla{
   overflow-x:auto;background:var(--hoja);
   border:1px solid var(--linea);border-radius:var(--r-g);
@@ -597,6 +624,49 @@ td.col-titulo{font-family:var(--f-display);font-weight:600;font-size:15px;min-wi
   cursor:pointer;font-size:13px;padding:4px 8px;border-radius:6px;
 }
 .editar:hover{background:var(--sello-suave)}
+.guion{color:var(--tinta-3)}
+
+/* ---- agrupamiento, casilla y acciones de fila ---- */
+.grupo-cab td{
+  padding:12px 20px 7px;
+  background:color-mix(in oklab,var(--sello) 5%,transparent);
+  font-family:var(--f-dato);font-size:11px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--tinta-2);border-bottom:1px solid var(--linea);
+}
+.grupo-cab .raya{margin-right:9px;vertical-align:middle}
+.grupo-cuenta{
+  margin-left:9px;padding:1px 7px;border-radius:5px;
+  background:var(--hoja-3);color:var(--tinta-3);letter-spacing:.04em;
+}
+tbody tr:hover{background:var(--hoja-2)}
+.fila-hecha .col-titulo{color:var(--tinta-3);text-decoration:line-through}
+
+th.col-marca,td.col-marca{width:44px;padding-right:0;text-align:center}
+.marca-hecha{
+  width:17px;height:17px;accent-color:var(--sello);cursor:pointer;vertical-align:middle;
+}
+@media (max-width:760px){
+  th.col-marca,td.col-marca{width:52px}
+  .marca-hecha{width:20px;height:20px}
+}
+
+/* Las acciones aparecen al posarse encima; con el teclado, al enfocarlas.
+   Sin ese segundo caso serían inalcanzables sin ratón. */
+.acciones-fila{display:flex;gap:4px;justify-content:flex-end;opacity:0}
+tbody tr:hover .acciones-fila,
+.acciones-fila:focus-within{opacity:1}
+.acciones-fila button{
+  border:0;background:transparent;color:var(--sello-claro);
+  font-family:var(--f-dato);font-size:12px;padding:5px 7px;border-radius:6px;cursor:pointer;
+}
+.acciones-fila button:hover{background:var(--sello-suave)}
+.acciones-fila button.peligro{color:var(--alerta)}
+.acciones-fila button.peligro:hover{background:var(--alerta-fondo)}
+/* En pantallas táctiles no existe "posarse encima": siempre visibles. */
+@media (hover:none){
+  .acciones-fila{opacity:1}
+  .acciones-fila button{padding:10px 8px}
+}
 
 /* ===================== Calendario ===================== */
 .cal-cab{display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap}
