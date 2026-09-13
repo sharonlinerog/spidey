@@ -49,18 +49,40 @@ export function pesoLegible(bytes) {
   return (n / (1024 * 1024)).toFixed(1) + " MB";
 }
 
-/** Un ícono por familia de archivo. Sin librerías: son cuatro casos. */
+/**
+ * Un ícono por familia de archivo, en SVG inline.
+ *
+ * Antes eran emoji. Se cambiaron porque cada sistema operativo los dibuja
+ * a su manera —y a todo color— y rompían la línea del resto de la interfaz,
+ * que es de trazo fino y hereda el color del texto.
+ */
+const TRAZO = 'fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"';
+
+const ICONOS = {
+  imagen: `<rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="8.5" cy="9.5" r="1.6"/><path d="m4 17 4.5-4.5 3.5 3.5 3-3L20 17"/>`,
+  pdf: `<path d="M14 2.5H7a2 2 0 0 0-2 2v15a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7.5l-5-5Z"/><path d="M14 2.5v5h5"/><path d="M9 13h6M9 16.5h4"/>`,
+  video: `<rect x="2.5" y="5.5" width="14" height="13" rx="2.5"/><path d="m16.5 10 5-3v10l-5-3"/>`,
+  audio: `<path d="M9 17.5V5l10-2v12.5"/><circle cx="6.5" cy="17.5" r="2.8"/><circle cx="16.5" cy="15.5" r="2.8"/>`,
+  hoja: `<rect x="3" y="3.5" width="18" height="17" rx="2.5"/><path d="M3 9h18M9 9v11.5M15 9v11.5"/>`,
+  texto: `<path d="M14 2.5H7a2 2 0 0 0-2 2v15a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7.5l-5-5Z"/><path d="M14 2.5v5h5M8.5 12.5h7M8.5 16h5"/>`,
+  comprimido: `<rect x="4" y="2.5" width="16" height="19" rx="2.5"/><path d="M11 3v2m2 1v2m-2 1v2m2 1v2m-2 1v3.5h2V15"/>`,
+  generico: `<path d="M14 2.5H7a2 2 0 0 0-2 2v15a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7.5l-5-5Z"/><path d="M14 2.5v5h5"/>`,
+};
+
 function iconoArchivo(tipo, nombre) {
   const t = String(tipo || "").toLowerCase();
   const ext = String(nombre || "").split(".").pop().toLowerCase();
-  if (t.startsWith("image/")) return "🖼";
-  if (t === "application/pdf" || ext === "pdf") return "📕";
-  if (t.startsWith("video/")) return "🎬";
-  if (t.startsWith("audio/")) return "🎵";
-  if (["xlsx", "xls", "csv"].includes(ext)) return "📊";
-  if (["docx", "doc", "odt"].includes(ext)) return "📝";
-  if (["zip", "rar", "7z"].includes(ext)) return "🗜";
-  return "📄";
+
+  let clave = "generico";
+  if (t.startsWith("image/") || ["png", "jpg", "jpeg", "gif", "webp", "svg", "avif"].includes(ext)) clave = "imagen";
+  else if (t === "application/pdf" || ext === "pdf") clave = "pdf";
+  else if (t.startsWith("video/")) clave = "video";
+  else if (t.startsWith("audio/")) clave = "audio";
+  else if (["xlsx", "xls", "csv", "ods"].includes(ext)) clave = "hoja";
+  else if (["docx", "doc", "odt", "txt", "md", "rtf"].includes(ext)) clave = "texto";
+  else if (["zip", "rar", "7z", "tar", "gz"].includes(ext)) clave = "comprimido";
+
+  return `<svg width="18" height="18" viewBox="0 0 24 24" ${TRAZO} aria-hidden="true">${ICONOS[clave]}</svg>`;
 }
 
 function avatarDe(nombre, color) {
