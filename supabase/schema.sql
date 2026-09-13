@@ -93,6 +93,28 @@ create table if not exists public.tableros (
   constraint color_valido          check (color ~ '^#[0-9A-Fa-f]{6}$')
 );
 
+-- La tabla puede venir de una versión anterior con menos columnas, y
+-- `create table if not exists` no la habría tocado. Se completan una a una.
+alter table public.tableros add column if not exists descripcion text not null default '';
+alter table public.tableros add column if not exists color       text not null default '#D30000';
+alter table public.tableros add column if not exists posicion    double precision not null default 0;
+alter table public.tableros add column if not exists archivado   boolean not null default false;
+alter table public.tableros add column if not exists actualizado timestamptz not null default now();
+
+-- Las restricciones se añaden aparte y sin hacer ruido: si la tabla es
+-- nueva ya las trae, y si es vieja podría tener datos que no las cumplen.
+-- Que falte una restricción no rompe nada; que falle el script, sí.
+do $$
+begin
+  begin
+    alter table public.tableros add constraint color_valido check (color ~ '^#[0-9A-Fa-f]{6}$');
+  exception when others then null; end;
+  begin
+    alter table public.tableros add constraint nombre_tablero_valido check (char_length(btrim(nombre)) between 1 and 60);
+  exception when others then null; end;
+end
+$$;
+
 comment on table public.tableros is 'Un tablero es un proyecto: agrupa tareas y tiene sus propios miembros.';
 
 create index if not exists tableros_propietario_idx on public.tableros (propietario, posicion);
@@ -418,17 +440,111 @@ revoke all on function public.invitar_a_tablero(uuid, text, text) from public;
 grant execute on function public.invitar_a_tablero(uuid, text, text) to authenticated;
 
 -- =====================================================================
--- 12. MIGRACIÓN DESDE LA v1
+-- 12. MIGRACIÓN DESDE LAS VERSIONES ANTERIORES
 --
--- La versión anterior guardaba tareas con una columna user_id y sin
--- tableros. Se le crea a cada persona un tablero "Mis tareas" con todo
--- lo suyo dentro, y se retira la columna vieja.
+-- Esta parte es la que rescata lo que ya existe. Contempla dos puntos de
+-- partida distintos:
+--
+--   v1  — tareas con una columna `user_id` y sin tableros. A cada persona
+--         se le crea un tablero "Mis tareas" con todo lo suyo dentro.
+--   v1.5 — tableros con `propietario` e invitados en `colaboradores`, por
+--         correo. Se traducen a membresías: el dueño como propietario y
+--         los colaboradores como editores. Quien no tenga cuenta todavía
+--         queda como invitación pendiente.
+--
+-- Sin esto, `tablero_miembros` nacería vacía y RLS dejaría a todo el mundo
+-- fuera de sus propios tableros: los datos seguirían ahí, pero nadie los
+-- vería. Se ejecuta antes de crear las políticas nuevas, a propósito.
 -- =====================================================================
+-- ---------------------------------------------------------------------
+-- 12.a  Retirar las políticas viejas
+--
+-- Va primero por dos razones. Una: las políticas de la versión anterior
+-- siguen vivas y se suman a las nuevas —en RLS varias políticas permisivas
+-- se suman, no se reemplazan—, así que dejarlas abriría accesos que no
+-- queremos. Dos: si alguna menciona la columna `user_id`, Postgres se
+-- niega a borrar esa columna mientras exista.
+-- ---------------------------------------------------------------------
+do $$
+declare p record;
+begin
+  for p in
+    select policyname, tablename from pg_policies
+    where schemaname = 'public' and tablename in ('tareas','tableros')
+  loop
+    execute format('drop policy if exists %I on public.%I', p.policyname, p.tablename);
+  end loop;
+end
+$$;
+
+-- ---------------------------------------------------------------------
+-- 12.b  Quién entra a los tableros que ya existían
+--
+-- La versión anterior guardaba al dueño en `tableros.propietario` y a los
+-- invitados en `colaboradores`, por correo. Sin esta parte, la tabla de
+-- miembros nacería vacía y RLS te dejaría fuera de tus propios tableros.
+-- ---------------------------------------------------------------------
+insert into public.tablero_miembros (tablero_id, user_id, rol)
+select id, propietario, 'propietario'
+from public.tableros
+where propietario is not null
+on conflict (tablero_id, user_id) do update set rol = 'propietario';
+
+do $$
+begin
+  if not exists (
+    select 1 from information_schema.tables
+    where table_schema = 'public' and table_name = 'colaboradores'
+  ) then
+    return;
+  end if;
+
+  -- Colaboradores que ya tienen cuenta: entran como editores.
+  execute $q$
+    insert into public.tablero_miembros (tablero_id, user_id, rol)
+    select distinct c.tablero_id, u.id, 'editor'
+    from public.colaboradores c
+    join auth.users u on lower(u.email) = lower(c.correo)
+    join public.tableros t on t.id = c.tablero_id
+    on conflict (tablero_id, user_id) do nothing
+  $q$;
+
+  -- Los que todavía no: su invitación queda esperando, y se cobrará sola
+  -- cuando se registren con ese correo.
+  execute $q$
+    insert into public.invitaciones (tablero_id, email, rol)
+    select distinct c.tablero_id, lower(btrim(c.correo)), 'editor'
+    from public.colaboradores c
+    join public.tableros t on t.id = c.tablero_id
+    where not exists (select 1 from auth.users u where lower(u.email) = lower(c.correo))
+      and lower(btrim(c.correo)) ~ '^[^@\s]+@[^@\s]+\.[^@\s]+$'
+    on conflict (tablero_id, email) do nothing
+  $q$;
+end
+$$;
+
+-- ---------------------------------------------------------------------
+-- 12.c  Tareas sueltas y columnas de la versión anterior
+-- ---------------------------------------------------------------------
 do $$
 declare
   v_user     uuid;
   v_tablero  uuid;
 begin
+  -- `asignado_correo` era el responsable de la versión anterior. Se copia
+  -- solo donde `responsable` esté vacío, para no pisar nada escrito a mano.
+  if exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'tareas' and column_name = 'asignado_correo'
+  ) then
+    execute $q$
+      update public.tareas
+      set responsable = asignado_correo
+      where coalesce(btrim(responsable), '') = ''
+        and coalesce(btrim(asignado_correo), '') <> ''
+    $q$;
+  end if;
+
   if not exists (
     select 1 from information_schema.columns
     where table_schema = 'public' and table_name = 'tareas' and column_name = 'user_id'
@@ -436,6 +552,7 @@ begin
     return;
   end if;
 
+  -- Tareas que nunca tuvieron tablero: a cada persona, el suyo.
   for v_user in execute 'select distinct user_id from public.tareas where tablero_id is null and user_id is not null'
   loop
     insert into public.tableros (propietario, nombre, descripcion)
@@ -446,7 +563,38 @@ begin
       using v_tablero, v_user;
   end loop;
 
-  execute 'alter table public.tareas drop column user_id';
+  -- Quien creó la tarea, donde aún no conste.
+  execute 'update public.tareas set creada_por = user_id where creada_por is null and user_id is not null';
+
+  -- Si algo sigue dependiendo de la columna vieja, se deja estar: sobra una
+  -- columna sin usar, pero no se pierde nada y el resto queda funcionando.
+  begin
+    execute 'alter table public.tareas drop column user_id';
+  exception when others then
+    raise notice 'No se pudo retirar tareas.user_id: %', sqlerrm;
+  end;
+end
+$$;
+
+-- El tablero_id venido de la versión anterior puede no tener clave foránea.
+-- Sin ella, borrar un tablero dejaría sus tareas huérfanas para siempre.
+do $$
+begin
+  if not exists (
+    select 1 from information_schema.table_constraints tc
+    join information_schema.key_column_usage k
+      on k.constraint_name = tc.constraint_name and k.table_schema = tc.table_schema
+    where tc.table_schema = 'public' and tc.table_name = 'tareas'
+      and tc.constraint_type = 'FOREIGN KEY' and k.column_name = 'tablero_id'
+  ) then
+    begin
+      alter table public.tareas
+        add constraint tareas_tablero_fk
+        foreign key (tablero_id) references public.tableros(id) on delete cascade;
+    exception when others then
+      raise notice 'No se pudo enlazar tareas.tablero_id con tableros: %', sqlerrm;
+    end;
+  end if;
 end
 $$;
 
@@ -486,10 +634,24 @@ create trigger tareas_actualizada
   before update on public.tareas
   for each row execute function public.tocar_actualizada();
 
+-- En tareas la columna se llama `actualizada` y en tableros `actualizado`.
+-- Un disparador no puede tocar un campo que la fila no tiene, así que cada
+-- tabla necesita su propia función. Compartirlas hacía fallar cualquier
+-- cambio en un tablero con "record new has no field actualizada".
+create or replace function public.tocar_actualizado()
+returns trigger
+language plpgsql
+as $$
+begin
+  new.actualizado := now();
+  return new;
+end;
+$$;
+
 drop trigger if exists tableros_actualizado on public.tableros;
 create trigger tableros_actualizado
   before update on public.tableros
-  for each row execute function public.tocar_actualizada();
+  for each row execute function public.tocar_actualizado();
 
 -- ---------------------------------------------------------------------
 -- Bitácora automática de tareas

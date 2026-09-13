@@ -39,16 +39,17 @@ También necesitas [Node.js 18 o superior](https://nodejs.org) si vas a correrla
    - **Desactivado**: entran de una, útil mientras pruebas.
 5. Ve a **Authentication → URL Configuration** y pon tu dominio real en **Site URL** y en **Redirect URLs** (por ejemplo `https://spidey.tudominio.com`). Sin esto, los enlaces de confirmación y de recuperar contraseña no vuelven a tu app.
 
-### ¿Vienes de la versión 1?
+### ¿Vienes de una versión anterior?
 
-`schema.sql` **migra tus datos solo**. Al detectar la columna vieja `user_id` en `tareas`:
+`schema.sql` **migra tus datos solo**, vengas de donde vengas. Antes de correrlo haz un respaldo desde **Database → Backups**; es un clic y te deja dormir tranquila.
 
-1. le crea a cada persona un tablero llamado **«Mis tareas»**,
-2. mete ahí todas sus tareas,
-3. la deja como propietaria de ese tablero,
-4. y retira la columna vieja.
+**Si tenías la v1** (tareas con columna `user_id`, sin tableros): le crea a cada persona un tablero llamado «Mis tareas», mete ahí sus tareas, la deja como propietaria y retira la columna vieja.
 
-No se pierde nada y no hay que hacer nada a mano. Aun así, antes de correrlo haz un respaldo desde **Database → Backups** (o con el botón «Descargar respaldo» de la app).
+**Si tenías la versión con tableros y `colaboradores`** (comparte por correo): completa `tableros` con las columnas que le faltan, y traduce el reparto de accesos al modelo nuevo —el `propietario` pasa a propietario y cada fila de `colaboradores` a editor—. A quien todavía no tenga cuenta, su invitación le queda esperando y se aplica sola cuando se registre con ese correo. También copia `asignado_correo` a `responsable` donde este esté vacío.
+
+Las tablas viejas `colaboradores` y `notificaciones` **no se borran**: quedan ahí sin usarse. Si después de comprobar que todo funciona quieres limpiarlas, es un `drop table` que puedes hacer con calma.
+
+> **Por qué importa ejecutarlo entero:** la seguridad de la v2 se apoya en `tablero_miembros`. Si esa tabla se crea vacía, RLS deja a todo el mundo fuera de sus propios tableros —los datos siguen ahí, pero nadie los ve—. Por eso la migración se ejecuta **antes** de crear las políticas nuevas, y por eso conviene correr el archivo completo de una sola vez y no por trozos.
 
 ---
 
