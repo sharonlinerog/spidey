@@ -90,12 +90,15 @@ npm run doctor           # revisa que las versiones encajen entre sí
 npx expo install --fix   # alinea las dependencias con el SDK instalado
 ```
 
-Estas versiones están fijadas al **SDK 51 de Expo**. Si al compilar EAS te dice que ese SDK ya no tiene soporte:
+Estas versiones están en el **SDK 57 de Expo**. Si algún día EAS te dice que ese SDK ya no tiene soporte, se sube al actual con:
 
 ```bash
 npx expo install expo@latest
 npx expo install --fix
+npm run doctor
 ```
+
+Ojo con un detalle que cambia entre SDK: a partir del 54, la pantalla de arranque **ya no se configura en `expo.splash`** sino dentro del plugin `expo-splash-screen`, en `expo.plugins`. Si tras subir de versión `expo-doctor` se queja de una propiedad que sobra, suele ser eso.
 
 **Pantalla en blanco al abrir:** casi siempre es `appUrl` mal escrita o la web sin desplegar. Ábrela primero en el navegador del celular.
 
