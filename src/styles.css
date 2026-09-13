@@ -368,6 +368,7 @@ kbd.atajo{
 }
 .chip-filtro select:focus{outline:none}
 .chip-filtro:focus-within{outline:2px solid var(--sello);outline-offset:2px}
+.chip-et{padding:8px 0;font-size:12.5px}
 .chip-x{
   border:0;background:transparent;color:var(--tinta-3);cursor:pointer;
   font-size:15px;line-height:1;padding:6px 6px;border-radius:6px;
@@ -753,6 +754,43 @@ tbody tr:hover .acciones-fila,
 }
 .kpi.aviso .n{color:var(--sello-claro)}
 .kpi .nota{margin-top:8px;font-size:13px;color:var(--tinta-2)}
+.kpi-delta{font-family:var(--f-dato);font-size:10.5px;color:var(--ok);margin-top:6px}
+.kpi-delta.mal{color:var(--alerta)}
+.kpi-delta:empty{display:none}
+.kpi-accion{
+  align-self:flex-start;margin-top:10px;padding:4px 0;
+  border:0;background:none;cursor:pointer;
+  font-family:var(--f-dato);font-size:11.5px;color:var(--sello-claro);
+}
+.kpi-accion:hover{text-decoration:underline}
+
+/* Barritas verticales. Sin ejes ni números: no es un gráfico para leer
+   valores, es para ver la forma —si el ritmo sube, baja o se detuvo—. */
+.spark{display:flex;align-items:flex-end;gap:2px;height:22px;margin-top:10px}
+.spark span{
+  flex:1;border-radius:1px;
+  background:color-mix(in oklab,var(--sello) 45%,transparent);
+}
+.spark span.pico{background:var(--sello)}
+
+.barra-segmentada{
+  height:10px;border-radius:5px;overflow:hidden;display:flex;min-width:6px;
+}
+.barra-segmentada span{display:block;height:100%}
+
+.histograma{
+  display:flex;align-items:flex-end;gap:4px;height:96px;
+  padding-bottom:6px;border-bottom:1px solid var(--linea);
+}
+.histo-barra{flex:1;height:100%;display:flex;align-items:flex-end}
+.histo-barra span{
+  display:block;width:100%;border-radius:3px 3px 0 0;
+  background:linear-gradient(180deg,var(--sello),var(--sello-hondo));
+}
+.histo-pie{
+  display:flex;justify-content:space-between;margin-top:8px;
+  font-family:var(--f-dato);font-size:10.5px;color:var(--tinta-3);
+}
 .paneles{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px}
 .panel{padding:24px;border-radius:var(--r-g);border:1px solid var(--linea);background:var(--hoja)}
 .panel h3{font-family:var(--f-display);font-size:16px;margin:0 0 2px;font-weight:600;color:var(--tinta)}

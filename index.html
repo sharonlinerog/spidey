@@ -227,6 +227,12 @@
           </select>
           <button type="button" class="chip-x" data-limpiar-filtro="prioridad" hidden aria-label="Quitar el filtro de prioridad">×</button>
         </span>
+        <!-- Este no se elige desde aquí: lo enciende el enlace "Ver todas"
+             del indicador de vencidas. Aparece para poder quitarlo. -->
+        <span class="chip-filtro aplicado" data-chip="vencidas" hidden>
+          <span class="chip-et">Solo vencidas</span>
+          <button type="button" class="chip-x" data-limpiar-filtro="vencidas" aria-label="Quitar el filtro de vencidas">×</button>
+        </span>
         <button class="btn btn-limpiar-todo" id="btn-limpiar" hidden>Limpiar todo</button>
       </div>
 

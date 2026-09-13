@@ -23,7 +23,7 @@ let usuario = null;
 let tareas = [];
 let cargado = false;
 let vista = "tablero";
-let filtros = { q: "", responsable: "", etiqueta: "", prioridad: "" };
+let filtros = { q: "", responsable: "", etiqueta: "", prioridad: "", vencidas: false };
 let cursorMes = new Date();
 let ordenLista = { campo: "vence", dir: "asc" };
 let agrupaLista = leerAjuste("spidey-agrupamiento", "estado");
@@ -235,7 +235,7 @@ function pintar() {
   $$(".pestanas button").forEach((b) =>
     b.setAttribute("aria-selected", String(b.dataset.vista === vista))
   );
-  el("btn-limpiar").hidden = !(filtros.q || filtros.responsable || filtros.etiqueta || filtros.prioridad);
+  el("btn-limpiar").hidden = !(filtros.q || filtros.responsable || filtros.etiqueta || filtros.prioridad || filtros.vencidas);
   sincronizarSelects();
   pintarChipsFiltro();
   pintarContadorTareas();
@@ -361,6 +361,8 @@ function pintarChipsFiltro() {
     const primera = chip.querySelector("select option[value='']");
     if (primera) primera.textContent = vacio;
   });
+
+  document.querySelector('[data-chip="vencidas"]').hidden = !filtros.vencidas;
 }
 
 /** "12 tareas · 3 vencen hoy" junto al estado de conexión. */
@@ -614,7 +616,18 @@ document.addEventListener("click", async (e) => {
 
   const quitarFiltro = e.target.closest("[data-limpiar-filtro]");
   if (quitarFiltro) {
-    filtros[quitarFiltro.dataset.limpiarFiltro] = "";
+    const campo = quitarFiltro.dataset.limpiarFiltro;
+    filtros[campo] = campo === "vencidas" ? false : "";
+    pintar();
+    return;
+  }
+
+  // "Ver todas" del indicador de vencidas: no basta con contarlas, hay que
+  // poder saltar a ellas.
+  if (e.target.closest("[data-ver-vencidas]")) {
+    filtros.vencidas = true;
+    vista = "lista";
+    ordenLista = { campo: "vence", dir: "asc" };
     pintar();
     return;
   }
@@ -987,7 +1000,7 @@ el("f-responsable").addEventListener("change", (e) => { filtros.responsable = e.
 el("f-etiqueta").addEventListener("change", (e) => { filtros.etiqueta = e.target.value; pintar(); });
 el("f-prioridad").addEventListener("change", (e) => { filtros.prioridad = e.target.value; pintar(); });
 el("btn-limpiar").addEventListener("click", () => {
-  filtros = { q: "", responsable: "", etiqueta: "", prioridad: "" };
+  filtros = { q: "", responsable: "", etiqueta: "", prioridad: "", vencidas: false };
   el("buscar").value = ""; pintar();
 });
 el("btn-nueva").addEventListener("click", () => abrir());

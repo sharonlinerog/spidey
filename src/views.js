@@ -91,6 +91,7 @@ export function etiquetas(tareas) {
 export function filtrar(tareas, f) {
   const q = (f.q || "").toLowerCase().trim();
   return tareas.filter((t) => {
+    if (f.vencidas && !vencida(t)) return false;
     if (f.responsable && t.responsable !== f.responsable) return false;
     if (f.prioridad && t.prioridad !== f.prioridad) return false;
     if (f.etiqueta && !(t.etiquetas || []).includes(f.etiqueta)) return false;
@@ -428,6 +429,72 @@ export function calendario(tareas, filtros, cursor, modo = "mes") {
 
 /* ---------------- indicadores ---------------- */
 
+/* ---------------- series temporales ---------------- */
+
+/** Clave AAAA-MM-DD de una fecha local (no UTC: un día se acaba a medianoche de aquí). */
+function claveDia(fecha) {
+  return fecha.getFullYear() + "-" + pad(fecha.getMonth() + 1) + "-" + pad(fecha.getDate());
+}
+
+/**
+ * Cuántas tareas se completaron cada uno de los últimos `dias` días.
+ * Se mira `completada`, que es cuando de verdad se cerró, no `vence`.
+ */
+export function serieUltimosDias(tareas, dias) {
+  const cuenta = {};
+  tareas.forEach((t) => {
+    if (!t.completada) return;
+    const d = new Date(t.completada);
+    if (!Number.isNaN(d.getTime())) {
+      const k = claveDia(d);
+      cuenta[k] = (cuenta[k] || 0) + 1;
+    }
+  });
+
+  const serie = [];
+  for (let i = dias - 1; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const k = claveDia(d);
+    serie.push({ fecha: k, n: cuenta[k] || 0 });
+  }
+  return serie;
+}
+
+/** Lo mismo pero por semanas, para ver el ritmo de varios meses. */
+function serieUltimasSemanas(tareas, semanas) {
+  const serie = [];
+  for (let i = semanas - 1; i >= 0; i--) {
+    const fin = new Date();
+    fin.setDate(fin.getDate() - i * 7);
+    const ini = new Date(fin);
+    ini.setDate(ini.getDate() - 6);
+    const a = claveDia(ini), b = claveDia(fin);
+    const n = tareas.filter((t) => {
+      if (!t.completada) return false;
+      const k = claveDia(new Date(t.completada));
+      return k >= a && k <= b;
+    }).length;
+    serie.push({ desde: a, hasta: b, n });
+  }
+  return serie;
+}
+
+/**
+ * Barritas verticales. Sin ejes ni números: no es un gráfico para leer
+ * valores, es para ver la forma —si el ritmo sube, baja o se detuvo—.
+ */
+function chispa(serie, etiqueta) {
+  if (!serie.length) return "";
+  const max = Math.max(1, ...serie.map((s) => s.n));
+  return `<div class="spark" role="img" aria-label="${esc(etiqueta)}">${serie
+    .map((s) => {
+      const alto = s.n ? Math.max(8, Math.round((s.n / max) * 100)) : 3;
+      return `<span class="${s.n === max && s.n > 0 ? "pico" : ""}" style="height:${alto}%" title="${s.n}"></span>`;
+    })
+    .join("")}</div>`;
+}
+
 export function indicadores(tareas, filtros) {
   const base = filtrar(tareas, filtros);
   if (!base.length)
@@ -444,17 +511,30 @@ export function indicadores(tareas, filtros) {
 
   const porEstado = ESTADOS.map((e) => ({ ...e, n: base.filter((t) => t.estado === e.id).length }));
 
+  // Carga por persona, desglosada: no es lo mismo tener ocho tareas al día
+  // que ocho con la mitad vencidas, y una barra sola no distingue los casos.
+  const desglose = (suyas) => ({
+    vencidas: suyas.filter(vencida).length,
+    curso: suyas.filter((t) => t.estado !== "hecho" && !vencida(t)).length,
+    hechas: suyas.filter((t) => t.estado === "hecho").length,
+  });
+
   const carga = personas(base)
     .map((p) => {
-      const suyas = activas.filter((t) => t.responsable === p);
-      return { nom: p, n: suyas.length, venc: suyas.filter(vencida).length };
+      const suyas = base.filter((t) => t.responsable === p);
+      const d = desglose(suyas);
+      return { nom: p, ...d, total: suyas.length, n: d.vencidas + d.curso };
     })
-    .filter((c) => c.n > 0)
-    .sort((a, b) => b.n - a.n)
+    .filter((c) => c.total > 0)
+    .sort((a, b) => b.n - a.n || b.total - a.total)
     .slice(0, 8);
-  const sinDuenio = activas.filter((t) => !t.responsable).length;
-  if (sinDuenio) carga.push({ nom: "Sin asignar", n: sinDuenio, venc: 0 });
-  const maxCarga = Math.max(1, ...carga.map((c) => c.n));
+
+  const sinDuenio = base.filter((t) => !t.responsable);
+  if (sinDuenio.length) {
+    const d = desglose(sinDuenio);
+    carga.push({ nom: "Sin asignar", ...d, total: sinDuenio.length, n: d.vencidas + d.curso });
+  }
+  const maxCarga = Math.max(1, ...carga.map((c) => c.total));
 
   const etq = etiquetas(base)
     .map((e) => ({ nom: e, n: base.filter((t) => (t.etiquetas || []).includes(e)).length }))
@@ -464,14 +544,41 @@ export function indicadores(tareas, filtros) {
 
   const proximas = activas.filter((t) => t.vence).sort((a, b) => (a.vence < b.vence ? -1 : 1)).slice(0, 6);
 
-  const kpi = (n, et, nota, aviso) =>
-    `<div class="kpi${aviso ? " aviso" : ""}"><span class="n">${n}</span><span class="et">${et}</span><span class="nota">${esc(nota)}</span></div>`;
+  // Ritmo: cuánto se cerró esta semana frente a la anterior.
+  const serie14 = serieUltimosDias(base, 14);
+  const estaSemana = serie14.slice(7).reduce((s, x) => s + x.n, 0);
+  const semanaPrevia = serie14.slice(0, 7).reduce((s, x) => s + x.n, 0);
+  const delta = estaSemana - semanaPrevia;
+  const textoDelta = semanaPrevia === 0 && estaSemana === 0
+    ? ""
+    : delta === 0
+    ? "igual que la semana pasada"
+    : (delta > 0 ? "▲ " : "▼ ") + Math.abs(delta) + " vs. semana pasada";
+
+  const kpi = (n, et, nota, extra = {}) =>
+    `<div class="kpi${extra.aviso ? " aviso" : ""}">
+      <span class="n">${n}</span>
+      <span class="et">${et}</span>
+      <span class="nota">${esc(nota)}</span>
+      ${extra.delta ? `<span class="kpi-delta${extra.deltaMal ? " mal" : ""}">${esc(extra.delta)}</span>` : ""}
+      ${extra.spark || ""}
+      ${extra.accion || ""}
+    </div>`;
 
   return `<div class="kpis">
     ${kpi(activas.length, "Tareas activas", `${hechas.length} completadas de ${base.length}`)}
-    ${kpi(venc.length, "Vencidas", venc.length ? "Requieren atención inmediata" : "Todo al día", venc.length > 0)}
+    ${kpi(venc.length, "Vencidas", venc.length ? "Requieren atención inmediata" : "Todo al día", {
+      aviso: venc.length > 0,
+      accion: venc.length
+        ? `<button type="button" class="kpi-accion" data-ver-vencidas>Ver todas →</button>`
+        : "",
+    })}
     ${kpi(pronto.length, "Vencen en 7 días", pronto.length ? "Próxima: " + fechaCorta(pronto[0].vence) : "Semana despejada")}
-    ${kpi(avance + "%", "Avance", `Sobre ${base.length} tarea${base.length === 1 ? "" : "s"} visible${base.length === 1 ? "" : "s"}`)}
+    ${kpi(estaSemana, "Cerradas esta semana", `${hechas.length} completadas en total`, {
+      delta: textoDelta,
+      deltaMal: delta < 0,
+      spark: chispa(serie14.slice(7), `Tareas cerradas cada día de los últimos 7 días`),
+    })}
   </div>
   <div class="paneles">
     <div class="panel"><h3>Flujo del tablero</h3><p class="sub">Dónde está detenido el trabajo ahora mismo.</p>
@@ -488,12 +595,46 @@ export function indicadores(tareas, filtros) {
       </div>
     </div>
 
-    <div class="panel"><h3>Carga por responsable</h3><p class="sub">Tareas activas asignadas a cada persona.</p>
-      <div class="barras">${carga.map((c) =>
-        `<div class="fila-barra"><span class="nom">${esc(c.nom)}</span>
-          <span class="pista"><span class="relleno" style="width:${Math.round((c.n / maxCarga) * 100)}%;background:${c.venc ? "var(--alerta)" : "var(--sello)"}"></span></span>
-          <span class="val">${c.n}</span></div>`).join("")}</div>
-      ${carga.some((c) => c.venc) ? '<div class="leyenda"><span><i style="background:var(--alerta)"></i>Incluye tareas vencidas</span></div>' : ""}
+    <div class="panel"><h3>Carga por responsable</h3><p class="sub">Qué tiene cada persona entre manos, y en qué estado.</p>
+      <div class="barras">${carga
+        .map((c) => {
+          const ancho = Math.round((c.total / maxCarga) * 100);
+          const tramo = (n, color, nombre) =>
+            n ? `<span style="flex:${n};background:${color}" title="${nombre}: ${n}"></span>` : "";
+          return `<div class="fila-barra"><span class="nom">${esc(c.nom)}</span>
+            <span class="pista" style="background:transparent">
+              <span class="barra-segmentada" style="width:${ancho}%">
+                ${tramo(c.vencidas, "var(--alerta)", "Vencidas")}
+                ${tramo(c.curso, "var(--sello)", "En curso")}
+                ${tramo(c.hechas, "var(--ok)", "Hechas")}
+              </span>
+            </span>
+            <span class="val">${c.total}</span></div>`;
+        })
+        .join("")}</div>
+      <div class="leyenda">
+        <span><i style="background:var(--alerta)"></i>Vencidas</span>
+        <span><i style="background:var(--sello)"></i>En curso</span>
+        <span><i style="background:var(--ok)"></i>Hechas</span>
+      </div>
+    </div>
+
+    <div class="panel"><h3>Ritmo de completado</h3><p class="sub">Tareas cerradas por semana en los últimos tres meses.</p>
+      ${(() => {
+        const semanas = serieUltimasSemanas(base, 12);
+        const max = Math.max(1, ...semanas.map((s) => s.n));
+        if (!semanas.some((s) => s.n))
+          return '<p class="panel-vacio">Todavía no se ha cerrado ninguna tarea.</p>';
+        return `<div class="histograma">${semanas
+          .map((s) => {
+            const alto = s.n ? Math.max(6, Math.round((s.n / max) * 100)) : 2;
+            return `<span class="histo-barra" title="${fechaCorta(s.desde)} – ${fechaCorta(s.hasta)}: ${s.n}">
+              <span style="height:${alto}%"></span>
+            </span>`;
+          })
+          .join("")}</div>
+          <div class="histo-pie"><span>${fechaCorta(semanas[0].desde)}</span><span>hoy</span></div>`;
+      })()}
     </div>
 
     <div class="panel"><h3>Próximos vencimientos</h3><p class="sub">Las seis fechas límite más cercanas.</p>
