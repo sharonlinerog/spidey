@@ -25,8 +25,13 @@ import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
 
 const URL_SUPABASE = Deno.env.get("SUPABASE_URL")!;
 const LLAVE_SERVICIO = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const GMAIL_USUARIO = Deno.env.get("GMAIL_USUARIO") ?? "";
-const GMAIL_CLAVE_APP = Deno.env.get("GMAIL_CLAVE_APP") ?? "";
+const GMAIL_USUARIO = (Deno.env.get("GMAIL_USUARIO") ?? "").trim();
+
+// Google muestra la contraseña de aplicación en cuatro grupos de cuatro
+// letras, y así es como se copia. Pero SMTP la quiere seguida: con los
+// espacios, Gmail responde "534 5.7.14 Please log in via your web browser",
+// que no dice nada de espacios y manda a buscar por el lado equivocado.
+const GMAIL_CLAVE_APP = (Deno.env.get("GMAIL_CLAVE_APP") ?? "").replace(/\s+/g, "");
 const APP_URL = Deno.env.get("APP_URL") ?? "";
 const ZONA = Deno.env.get("ZONA_HORARIA") ?? "America/Bogota";
 
@@ -177,6 +182,24 @@ function armarCorreo(
 </body></html>`;
 }
 
+/**
+ * Los errores de SMTP vienen en inglés, en una sola línea kilométrica y
+ * apuntando casi siempre al sitio equivocado. Esto les pone delante una
+ * frase que diga qué hacer.
+ */
+function pista(mensaje: string): string {
+  const m = mensaje.toLowerCase();
+  if (m.includes("534") || m.includes("log in via your web browser"))
+    return "Gmail rechazó la contraseña. Comprueba que sea una CONTRASEÑA DE APLICACIÓN de 16 letras (no la contraseña normal) y que la cuenta tenga la verificación en dos pasos activada. → " + mensaje;
+  if (m.includes("535"))
+    return "Usuario o contraseña de aplicación incorrectos. → " + mensaje;
+  if (m.includes("550") && m.includes("daily"))
+    return "Se alcanzó el límite diario de envíos de Gmail (unos 500). → " + mensaje;
+  if (m.includes("timeout") || m.includes("connection"))
+    return "No se pudo conectar con smtp.gmail.com. → " + mensaje;
+  return mensaje;
+}
+
 Deno.serve(async (): Promise<Response> => {
   if (!GMAIL_USUARIO || !GMAIL_CLAVE_APP) {
     return Response.json(
@@ -292,7 +315,7 @@ Deno.serve(async (): Promise<Response> => {
         // Si el envío falla, se retira la marca para que el intento de
         // mañana —o el reintento de hoy— sí pueda escribirle.
         await db.from("avisos_enviados").delete().eq("user_id", p.id).eq("fecha", hoy);
-        fallos.push(`${p.email}: ${(e as Error).message}`);
+        fallos.push(`${p.email}: ${pista((e as Error).message)}`);
       }
     }
   } finally {
