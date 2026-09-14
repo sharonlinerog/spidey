@@ -129,26 +129,33 @@ Dos decisiones que conviene conocer:
 - **Un correo por persona, no uno por tarea.** Diez vencimientos no deben producir diez correos.
 - **Solo se escribe cuando hay algo vencido o para hoy.** Un correo que dice «nada urgente» es un correo que la gente aprende a ignorar, y con él se pierden los que sí importan.
 
-Se envía por el SMTP de Gmail con una **contraseña de aplicación**. No hace falta OAuth ni un proyecto en Google Console: eso sería necesario para usar la API de Gmail, no para SMTP.
+Se envía con **Brevo**, por HTTP.
 
-### Paso 1 — Contraseña de aplicación de Gmail
+> ### ⚠️ Gmail por SMTP no funciona desde Supabase
+>
+> Es lo primero que uno intenta, y no sirve. Google rechaza las conexiones SMTP que salen de las IP de las funciones de borde de Supabase con `534 5.7.9 WebLoginRequired`, **aunque todo esté bien**: contraseña de aplicación válida de 16 caracteres, verificación en dos pasos activa, y la cuenta desbloqueada desde [DisplayUnlockCaptcha](https://accounts.google.com/DisplayUnlockCaptcha).
+>
+> No es un error del código ni de la librería —se probó con `denomailer` y con `nodemailer`—: es la política de Google sobre esas IP. Por eso la vía buena es HTTP, que no negocia inicio de sesión con nadie.
+>
+> El soporte de Gmail sigue en el código por si algún día cambia: sin `BREVO_API_KEY`, la función lo intenta por ahí. La respuesta indica por cuál de las dos salió.
 
-1. La cuenta de Gmail necesita la **verificación en dos pasos activada**. Sin eso, Google no ofrece contraseñas de aplicación.
-2. Entra a [myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords).
-3. Escribe un nombre (por ejemplo «Spidey») y crea la contraseña.
-4. Google te da **16 letras en cuatro grupos**. Cópiala: no se vuelve a mostrar.
+### Paso 1 — Cuenta de Brevo
 
-> Esa contraseña da acceso a enviar correo como tú. Trátala como una contraseña, porque lo es. Si se filtra, se revoca desde esa misma página.
+1. Crea una cuenta gratuita en [brevo.com](https://www.brevo.com). Son 300 correos al día, de sobra para un equipo.
+2. **Verifica el remitente**: en *Senders, Domains & Dedicated IPs → Senders*, añade el correo desde el que quieres escribir y pulsa el enlace que te llega. No hace falta dominio propio.
+3. Genera una clave en [app.brevo.com/settings/keys/api](https://app.brevo.com/settings/keys/api). Empieza por `xkeysib-`.
 
 ### Paso 2 — Desplegar la función
 
 ```bash
 supabase functions deploy notificar-correo
 supabase secrets set \
-  GMAIL_USUARIO=tucorreo@gmail.com \
-  GMAIL_CLAVE_APP="abcd efgh ijkl mnop" \
+  BREVO_API_KEY=xkeysib-... \
+  CORREO_REMITENTE=elcorreoqueverificaste@gmail.com \
   APP_URL=https://spidey.tudominio.com
 ```
+
+> Si no tienes instalado el CLI de Supabase, no hace falta: `npx supabase ...` lo descarga y ejecuta al vuelo.
 
 ### Paso 3 — Programarlo
 
@@ -168,7 +175,7 @@ delete from public.avisos_enviados where fecha = current_date;
 
 ### Límites que conviene saber
 
-Una cuenta de Gmail gratuita envía **unos 500 correos al día**. Para un equipo pequeño sobra; para cientos de personas habría que pasar a un servicio de envío (Resend, SendGrid, Amazon SES), que se conectan igual de fácil.
+El plan gratuito de Brevo envía **300 correos al día**. Para un equipo sobra; si algún día no alcanza, se sube de plan sin tocar el código.
 
 ### De paso: los correos de la propia cuenta
 
