@@ -30,6 +30,16 @@ import nodemailer from "npm:nodemailer@6.9.16";
 
 const URL_SUPABASE = Deno.env.get("SUPABASE_URL")!;
 const LLAVE_SERVICIO = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+// Brevo envía por HTTP, no por SMTP. Es lo que acabó funcionando: Gmail
+// rechaza las conexiones SMTP que salen de los servidores de Supabase con
+// "534 5.7.9 WebLoginRequired", aunque la contraseña de aplicación sea
+// correcta y la cuenta esté desbloqueada. No es algo que el código pueda
+// arreglar: Google no confía en esa IP y punto.
+//
+// Si BREVO_API_KEY está puesta se usa Brevo; si no, se intenta Gmail.
+const BREVO_API_KEY = (Deno.env.get("BREVO_API_KEY") ?? "").trim();
+const REMITENTE = (Deno.env.get("CORREO_REMITENTE") ?? "").trim();
+
 const GMAIL_USUARIO = (Deno.env.get("GMAIL_USUARIO") ?? "").trim();
 
 // Google muestra la contraseña de aplicación en cuatro grupos de cuatro
@@ -205,10 +215,30 @@ function pista(mensaje: string): string {
   return mensaje;
 }
 
+/** Un envío por HTTP contra Brevo. Sin TCP, sin negociación, sin políticas. */
+async function enviarPorBrevo(para: string, nombre: string, asunto: string, html: string) {
+  const desde = REMITENTE || GMAIL_USUARIO;
+  const r = await fetch("https://api.brevo.com/v3/smtp/email", {
+    method: "POST",
+    headers: {
+      "api-key": BREVO_API_KEY,
+      "content-type": "application/json",
+      accept: "application/json",
+    },
+    body: JSON.stringify({
+      sender: { name: "Spidey", email: desde },
+      to: [{ email: para, name: nombre }],
+      subject: asunto,
+      htmlContent: html,
+    }),
+  });
+  if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
+}
+
 Deno.serve(async (): Promise<Response> => {
-  if (!GMAIL_USUARIO || !GMAIL_CLAVE_APP) {
+  if (!BREVO_API_KEY && (!GMAIL_USUARIO || !GMAIL_CLAVE_APP)) {
     return Response.json(
-      { error: "Faltan GMAIL_USUARIO y GMAIL_CLAVE_APP en los secretos de Supabase." },
+      { error: "Falta BREVO_API_KEY (o GMAIL_USUARIO y GMAIL_CLAVE_APP) en los secretos de Supabase." },
       { status: 500 },
     );
   }
@@ -276,25 +306,31 @@ Deno.serve(async (): Promise<Response> => {
     .in("id", [...porPersona.keys()]);
 
   // ---- 5. Enviar ----
-  const cliente = nodemailer.createTransport({
-    host: "smtp.gmail.com",
-    port: 465,
-    secure: true,
-    auth: { user: GMAIL_USUARIO, pass: GMAIL_CLAVE_APP },
-  });
+  const porBrevo = !!BREVO_API_KEY;
+  const cliente = porBrevo
+    ? null
+    : nodemailer.createTransport({
+        host: "smtp.gmail.com",
+        port: 465,
+        secure: true,
+        auth: { user: GMAIL_USUARIO, pass: GMAIL_CLAVE_APP },
+      });
 
   // Se comprueba la sesión una sola vez, antes de empezar. Si la contraseña
   // está mal, da igual cuánta gente haya: el error es el mismo para todos y
-  // repetirlo tres veces solo hace más difícil leerlo.
-  try {
-    await cliente.verify();
-  } catch (e) {
-    return Response.json({
-      ok: false,
-      error: pista((e as Error).message),
-      usuario: GMAIL_USUARIO,
-      largoClave: GMAIL_CLAVE_APP.length,
-    }, { status: 500 });
+  // repetirlo una vez por persona solo hace más difícil leerlo.
+  if (cliente) {
+    try {
+      await cliente.verify();
+    } catch (e) {
+      return Response.json({
+        ok: false,
+        via: "gmail",
+        error: pista((e as Error).message),
+        usuario: GMAIL_USUARIO,
+        largoClave: GMAIL_CLAVE_APP.length,
+      }, { status: 500 });
+    }
   }
 
   let enviados = 0;
@@ -320,12 +356,15 @@ Deno.serve(async (): Promise<Response> => {
         ? `${r.vencidas.length} tarea${r.vencidas.length === 1 ? "" : "s"} vencida${r.vencidas.length === 1 ? "" : "s"} en Spidey`
         : `${r.hoy.length} tarea${r.hoy.length === 1 ? "" : "s"} vence${r.hoy.length === 1 ? "" : "n"} hoy`;
 
+      const html = armarCorreo(nombre, r.vencidas, r.hoy, r.pronto, nombreTablero);
+
       try {
-        await cliente.sendMail({
+        if (porBrevo) await enviarPorBrevo(p.email, nombre, asunto, html);
+        else await cliente!.sendMail({
           from: `Spidey <${GMAIL_USUARIO}>`,
           to: p.email,
           subject: asunto,
-          html: armarCorreo(nombre, r.vencidas, r.hoy, r.pronto, nombreTablero),
+          html,
         });
         enviados++;
       } catch (e) {
@@ -336,11 +375,12 @@ Deno.serve(async (): Promise<Response> => {
       }
     }
   } finally {
-    cliente.close();
+    if (cliente) cliente.close();
   }
 
   return Response.json({
     ok: true,
+    via: porBrevo ? "brevo" : "gmail",
     fecha: hoy,
     personas: porPersona.size,
     enviados,
