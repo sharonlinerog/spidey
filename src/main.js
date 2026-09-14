@@ -1440,8 +1440,9 @@ async function refrescarBotonRecordatorios() {
 
   if (!push.soportado()) {
     caja.classList.add("inactivo");
-    estado.textContent = "Recordatorios no disponibles";
-    nota.textContent = push.motivoNoDisponible() || "Este navegador no los admite";
+    const m = push.motivoNoDisponible();
+    estado.textContent = m.includes("VAPID") ? "Recordatorios en el celular" : "Recordatorios no disponibles";
+    nota.textContent = m.includes("VAPID") ? "Opcional: los avisos por correo ya funcionan" : (m || "Este navegador no los admite");
     return;
   }
 
@@ -1458,10 +1459,21 @@ async function hojaRecordatorios() {
   const motivo = push.motivoNoDisponible();
   const encendidos = disponible && (await push.activos());
 
+  // Sin llaves VAPID esto no está roto: está sin configurar, y además es
+  // opcional porque los avisos por correo ya cubren lo mismo. Pintarlo en
+  // rojo haría pensar que algo falló.
+  const sinConfigurar = motivo.includes("VAPID");
+
   abrirHoja(
-    "Recordatorios",
-    `<p class="hoja-texto">Una vez al día, Spidey te avisa de lo que vence hoy y de lo que ya venció en todos tus tableros. El aviso llega aunque la app esté cerrada.</p>
-     ${motivo ? `<p class="aviso-acceso">${esc(motivo)}</p>` : ""}
+    "Recordatorios en el celular",
+    `<p class="hoja-texto">Además del correo diario, Spidey puede avisarte con una notificación en la pantalla, aunque la app esté cerrada.</p>
+     ${
+       sinConfigurar
+         ? `<p class="nota-opcional">Esta opción no está configurada, y no hace falta para nada: <b>los avisos por correo ya funcionan</b> y llegan igual. Activarla requiere generar unas llaves de firma y añadirlas al hosting.</p>`
+         : motivo
+         ? `<p class="aviso-acceso">${esc(motivo)}</p>`
+         : ""
+     }
      <p class="hoja-texto"><b>Estado en este dispositivo:</b> ${encendidos ? "activados" : "desactivados"}.</p>
      <div class="hoja-botones">
        ${

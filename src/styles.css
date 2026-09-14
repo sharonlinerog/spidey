@@ -1557,3 +1557,11 @@ td.col-titulo .insignias{margin-top:6px}
                color .15s ease,opacity .15s ease,width .35s cubic-bezier(.4,0,.2,1);
   }
 }
+
+/* Una función opcional sin configurar no es un error: se cuenta en tono
+   neutro, no en rojo de alarma. */
+.nota-opcional{
+  margin:0;padding:12px 14px;border-radius:10px;font-size:13.5px;line-height:1.55;
+  background:var(--hoja-2);border:1px solid var(--linea);color:var(--tinta-2);
+}
+.nota-opcional b{color:var(--tinta)}
