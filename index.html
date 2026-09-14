@@ -441,6 +441,29 @@
   </div>
 </div>
 
+<!-- ===== Diálogo de confirmación =====
+     Reemplaza a confirm() y prompt() del navegador, que se pintan con el
+     estilo del sistema operativo, no se pueden traducir ni cambiar, y
+     bloquean la página entera mientras están abiertos. -->
+<div class="telon" id="telon-dialogo" hidden>
+  <div class="hoja-form hoja-dialogo" role="alertdialog" aria-modal="true"
+       aria-labelledby="dialogo-titulo" aria-describedby="dialogo-texto">
+    <h2 id="dialogo-titulo"></h2>
+    <p class="dialogo-texto" id="dialogo-texto"></p>
+    <form id="form-dialogo">
+      <label id="dialogo-campo" hidden>
+        <span id="dialogo-etiqueta"></span>
+        <input class="campo" id="dialogo-input" autocomplete="off">
+      </label>
+      <p class="dialogo-error" id="dialogo-error" role="alert" hidden></p>
+      <div class="dialogo-pie">
+        <button type="button" class="btn" id="dialogo-no">Cancelar</button>
+        <button type="submit" class="btn btn-p" id="dialogo-si">Confirmar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <!-- Botón flotante de nueva tarea. Solo en el celular, y colocado abajo a
      la derecha, que es donde alcanza el pulgar sin recolocar la mano. -->
 <button class="fab-nueva" id="fab-nueva" aria-label="Nueva tarea" title="Nueva tarea">

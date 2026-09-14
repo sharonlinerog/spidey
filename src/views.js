@@ -120,7 +120,12 @@ function vacio(titulo, texto, conBoton) {
  * cuántos comentarios y adjuntos tiene. Se pasa como parámetro en vez de
  * importarlo del store para que este archivo siga siendo funciones puras.
  */
-const SIN_META = { avance: () => null, comentarios: () => 0, adjuntos: () => 0 };
+const SIN_META = {
+  avance: () => null,
+  comentarios: () => 0,
+  adjuntos: () => 0,
+  puedeEditar: false,
+};
 
 export function tablero(tareas, filtros, cargado, meta = SIN_META) {
   const base = filtrar(tareas, filtros);
@@ -204,6 +209,20 @@ function tarjeta(t, meta = SIN_META) {
           : '<span style="color:var(--tinta-3);font-size:12px">Sin responsable</span>'
       }</span>
       ${insignias(t, meta)}
+      ${
+        meta.puedeEditar
+          ? `<button class="t-accion" data-editar="${t.id}" aria-label="Editar «${esc(t.titulo)}»" title="Editar">
+               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                 <path d="M4 20h4L19.5 8.5a2.1 2.1 0 0 0-3-3L5 17v3Z"/><path d="M14.5 6.5l3 3"/>
+               </svg>
+             </button>
+             <button class="t-accion peligro" data-eliminar="${t.id}" aria-label="Eliminar «${esc(t.titulo)}»" title="Eliminar">
+               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                 <path d="M4 6.5h16M9.5 6.5V4.5h5v2M6.5 6.5l1 13h9l1-13M10.5 10v6M13.5 10v6"/>
+               </svg>
+             </button>`
+          : ""
+      }
       <button class="mover" data-mover="-1" data-id="${t.id}" ${i <= 0 ? "disabled" : ""} aria-label="Mover a la columna anterior">‹</button>
       <button class="mover" data-mover="1" data-id="${t.id}" ${i >= ESTADOS.length - 1 ? "disabled" : ""} aria-label="Mover a la columna siguiente">›</button>
     </div></article>`;
