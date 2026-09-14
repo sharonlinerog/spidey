@@ -1,31 +1,40 @@
 -- =====================================================================
--- Spidey — programar el recordatorio diario
+-- Spidey — programar los avisos diarios
 --
--- Ejecútalo DESPUÉS de desplegar la función de borde:
---   supabase functions deploy notificar-vencimientos
+-- Ejecútalo DESPUÉS de desplegar las funciones de borde:
+--   npx supabase functions deploy notificar-correo
+--   npx supabase functions deploy notificar-vencimientos   (opcional, push)
 --
--- Antes de correrlo, reemplaza los dos valores marcados con << >>.
+-- ANTES DE EJECUTAR: reemplaza los dos valores de la sección 1.
+-- Los dos son públicos: la URL del proyecto y la clave `anon`, que ya
+-- viaja dentro de la app en el navegador. Aquí NO hace falta la
+-- service_role: esa cabecera solo sirve para que Supabase deje pasar la
+-- llamada, y la función usa su propia clave de servicio por dentro.
 -- =====================================================================
 
 create extension if not exists pg_cron;
 create extension if not exists pg_net;
 
--- ---------------------------------------------------------------------
--- La clave de servicio NO se escribe dentro del cron: quedaría legible
--- en cron.job para cualquiera con acceso a la consola. Se guarda una vez
--- en la configuración de la base y se lee por nombre.
+-- =====================================================================
+-- 1. TUS DOS VALORES
 --
--- Ejecuta esta línea aparte, con tus valores reales:
---
---   alter database postgres set app.url_funciones = 'https://<<TU-PROYECTO>>.supabase.co/functions/v1';
---   alter database postgres set app.llave_servicio = '<<TU SERVICE ROLE KEY>>';
---
--- Después de un `alter database ... set`, hay que reconectar la sesión
--- del SQL Editor (recarga la página) para que los valores se vean.
--- ---------------------------------------------------------------------
+-- Están en Supabase -> Project Settings -> API:
+--   Project URL   -> la primera
+--   anon public   -> la segunda
+-- =====================================================================
+create or replace function public.spidey_url_funciones()
+returns text language sql immutable as $$
+  select 'https://elyhykjylswkbgichaqt.supabase.co/functions/v1'
+$$;
 
--- Una sola función para las dos: la única diferencia es a qué función de
--- borde se llama, así que se pasa por parámetro.
+create or replace function public.spidey_clave_anon()
+returns text language sql immutable as $$
+  select 'PEGA-AQUI-TU-ANON-KEY'
+$$;
+
+-- =====================================================================
+-- 2. QUIEN HACE LA LLAMADA
+-- =====================================================================
 create or replace function public.disparar_funcion(p_nombre text)
 returns bigint
 language plpgsql
@@ -33,19 +42,13 @@ security definer
 set search_path = public
 as $$
 declare
-  v_url    text := current_setting('app.url_funciones', true);
-  v_llave  text := current_setting('app.llave_servicio', true);
-  v_id     bigint;
+  v_id bigint;
 begin
-  if v_url is null or v_llave is null then
-    raise exception 'Faltan app.url_funciones o app.llave_servicio. Configúralos con alter database.';
-  end if;
-
   select net.http_post(
-    url     := v_url || '/' || p_nombre,
+    url     := public.spidey_url_funciones() || '/' || p_nombre,
     headers := jsonb_build_object(
                  'Content-Type',  'application/json',
-                 'Authorization', 'Bearer ' || v_llave
+                 'Authorization', 'Bearer ' || public.spidey_clave_anon()
                ),
     body    := '{}'::jsonb
   ) into v_id;
@@ -56,21 +59,13 @@ $$;
 
 -- Avisos por correo: a todo el que pertenezca al tablero.
 create or replace function public.disparar_correos()
-returns bigint
-language sql
-security definer
-set search_path = public
-as $$
+returns bigint language sql security definer set search_path = public as $$
   select public.disparar_funcion('notificar-correo');
 $$;
 
 -- Avisos push: solo a quien los haya activado en su dispositivo.
 create or replace function public.disparar_recordatorios()
-returns bigint
-language sql
-security definer
-set search_path = public
-as $$
+returns bigint language sql security definer set search_path = public as $$
   select public.disparar_funcion('notificar-vencimientos');
 $$;
 
@@ -78,38 +73,38 @@ revoke all on function public.disparar_funcion(text) from public;
 revoke all on function public.disparar_correos() from public;
 revoke all on function public.disparar_recordatorios() from public;
 
--- ---------------------------------------------------------------------
--- Programación: todos los días a las 13:00 UTC = 8:00 a. m. en Colombia.
--- Si cambias de país, ajusta la hora: pg_cron siempre razona en UTC.
+-- =====================================================================
+-- 3. LA PROGRAMACIÓN
 --
--- Los dos avisos van a la misma hora pero con cinco minutos de diferencia,
--- para no abrir dos conexiones pesadas a la vez.
--- ---------------------------------------------------------------------
+-- Todos los días a las 13:00 UTC = 8:00 a. m. en Colombia. Si cambias de
+-- país, ajusta la hora: pg_cron siempre razona en UTC.
+--
+-- Los dos avisos van con cinco minutos de diferencia para no abrir dos
+-- conexiones pesadas a la vez.
+-- =====================================================================
 select cron.unschedule('spidey-correos')
 where exists (select 1 from cron.job where jobname = 'spidey-correos');
 
-select cron.schedule(
-  'spidey-correos',
-  '0 13 * * *',
-  $$select public.disparar_correos();$$
-);
+select cron.schedule('spidey-correos', '0 13 * * *', $$select public.disparar_correos();$$);
 
 select cron.unschedule('spidey-recordatorios')
 where exists (select 1 from cron.job where jobname = 'spidey-recordatorios');
 
-select cron.schedule(
-  'spidey-recordatorios',
-  '5 13 * * *',
-  $$select public.disparar_recordatorios();$$
-);
+select cron.schedule('spidey-recordatorios', '5 13 * * *', $$select public.disparar_recordatorios();$$);
 
--- Para revisar que quedaron programados:
+-- =====================================================================
+-- 4. COMPROBAR
+-- =====================================================================
+-- Que quedaron programados:
 --   select jobname, schedule, active from cron.job;
--- Para ver las últimas corridas:
---   select * from cron.job_run_details order by start_time desc limit 10;
--- Para probar el correo ahora mismo sin esperar:
+--
+-- Las últimas corridas:
+--   select jobname, status, start_time from cron.job_run_details
+--   order by start_time desc limit 10;
+--
+-- Probar el correo ahora mismo:
 --   select public.disparar_correos();
 --
--- Ojo al probar: solo se escribe una vez por persona y día. Si ya recibiste
--- el de hoy y quieres repetirlo, hay que borrar la marca primero:
+-- Ojo al probar: solo se escribe una vez por persona y día. Para repetir
+-- el envío de hoy hay que borrar la marca primero:
 --   delete from public.avisos_enviados where fecha = current_date;

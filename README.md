@@ -159,7 +159,7 @@ supabase secrets set \
 
 ### Paso 3 — Programarlo
 
-Ejecuta `supabase/cron.sql` (lee primero sus comentarios: hay que registrar la URL y la clave de servicio con `alter database`). Queda a las 8:00 a. m. hora de Colombia.
+Abre `supabase/cron.sql`, reemplaza los dos valores de su sección 1 —la URL de tu proyecto y tu clave `anon`, ambas públicas— y ejecútalo en el SQL Editor. Queda a las 8:00 a. m. hora de Colombia.
 
 Para probarlo sin esperar:
 
