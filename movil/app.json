@@ -29,7 +29,10 @@
       "supportsTablet": true
     },
     "extra": {
-      "appUrl": "https://spidey-six-pi.vercel.app"
+      "appUrl": "https://spidey-six-pi.vercel.app",
+      "eas": {
+        "projectId": "f4331978-d6a0-46d0-bc63-46ba4d3612fd"
+      }
     },
     "plugins": [
       [
@@ -41,6 +44,7 @@
         }
       ],
       "expo-status-bar"
-    ]
+    ],
+    "owner": "slinero"
   }
 }
