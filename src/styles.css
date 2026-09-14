@@ -72,6 +72,18 @@
   --sombra-sello:0 10px 26px rgba(197,0,0,.24);
 }
 
+/* Le dice al navegador en qué tema está la página, y con eso pinta él
+   mismo los controles nativos que el CSS no alcanza: la lista desplegada
+   de un <select>, el calendario de un <input type=date>, las barras de
+   desplazamiento. Sin esto, esa lista salía con fondo blanco y letra
+   clarísima, ilegible. */
+:root{color-scheme:dark}
+:root[data-theme="light"]{color-scheme:light}
+
+/* Y por si el navegador ignora lo anterior, las opciones llevan su color
+   escrito. Algunos Android no respetan color-scheme en los desplegables. */
+option{background-color:var(--hoja);color:var(--tinta)}
+
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
 body{

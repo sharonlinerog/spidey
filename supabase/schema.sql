@@ -825,6 +825,15 @@ begin
   elsif tg_table_name = 'adjuntos' and tg_op = 'DELETE' then
     v_accion := 'adjunto_eliminado';
     v_detalle := jsonb_build_object('nombre', old.nombre);
+  elsif tg_table_name = 'subtareas' and tg_op = 'INSERT' then
+    v_accion := 'subtarea_agregada';
+    v_detalle := jsonb_build_object('texto', new.texto);
+  elsif tg_table_name = 'subtareas' and tg_op = 'UPDATE'
+        and new.hecha is distinct from old.hecha then
+    -- Solo cuando se marca o desmarca. Reordenar o corregir el texto de
+    -- una subtarea no es una novedad que merezca avisar a nadie.
+    v_accion := case when new.hecha then 'subtarea_hecha' else 'subtarea_reabierta' end;
+    v_detalle := jsonb_build_object('texto', new.texto);
   else
     return coalesce(new, old);
   end if;
@@ -843,6 +852,11 @@ create trigger comentarios_bitacora
 drop trigger if exists adjuntos_bitacora on public.adjuntos;
 create trigger adjuntos_bitacora
   after insert or delete on public.adjuntos
+  for each row execute function public.anotar_hijo();
+
+drop trigger if exists subtareas_bitacora on public.subtareas;
+create trigger subtareas_bitacora
+  after insert or update on public.subtareas
   for each row execute function public.anotar_hijo();
 
 -- =====================================================================

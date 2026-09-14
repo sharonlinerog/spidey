@@ -450,6 +450,12 @@ export function fraseHistorial(fila, esYo) {
       return `${v("eliminó", "eliminaste")} la tarea <b>${esc(d.titulo || "")}</b>`;
     case "comentario_agregado":
       return `${v("comentó", "comentaste")}: <i>«${esc(d.extracto || "")}»</i>`;
+    case "subtarea_agregada":
+      return `${v("añadió", "añadiste")} el paso <b>${esc(d.texto || "")}</b>`;
+    case "subtarea_hecha":
+      return `${v("completó", "completaste")} <b>${esc(d.texto || "")}</b>`;
+    case "subtarea_reabierta":
+      return `${v("reabrió", "reabriste")} <b>${esc(d.texto || "")}</b>`;
     case "adjunto_agregado":
       return `${v("adjuntó", "adjuntaste")} <b>${esc(d.nombre || "")}</b>`;
     case "adjunto_eliminado":

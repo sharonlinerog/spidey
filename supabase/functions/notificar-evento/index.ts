@@ -266,6 +266,25 @@ Deno.serve(async (req: Request): Promise<Response> => {
       break;
     }
 
+    case "subtarea_agregada":
+    case "subtarea_hecha": {
+      destinos = await interesados();
+      const hecha = accion === "subtarea_hecha";
+      asunto = hecha
+        ? `Paso completado en ${titulo === "una tarea" ? nombreTablero : titulo}`
+        : `Nuevo paso en ${titulo === "una tarea" ? nombreTablero : titulo}`;
+      html = sobre(
+        `${esc(autor)} ${hecha ? "completó un paso" : "añadió un paso"}`,
+        caja(
+          hecha
+            ? `<span style="text-decoration:line-through;color:${COLOR.tinta3}">${esc(detalle?.texto ?? "")}</span>`
+            : `<b>${esc(detalle?.texto ?? "")}</b>`,
+        ) + `<div style="color:${COLOR.tinta3};font-size:13px;">En ${esc(nombreTablero)}</div>`,
+        "Ver la tarea",
+      );
+      break;
+    }
+
     case "adjunto_agregado": {
       destinos = await interesados();
       asunto = `${autor} adjuntó un archivo`;
