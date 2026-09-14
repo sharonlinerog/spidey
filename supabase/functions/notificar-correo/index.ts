@@ -21,7 +21,12 @@
 // =====================================================================
 
 import { createClient } from "npm:@supabase/supabase-js@2.45.4";
-import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
+
+// nodemailer y no denomailer: con este último, Gmail rechazaba la conexión
+// con "534 5.7.9 WebLoginRequired" incluso con una contraseña de aplicación
+// válida y la verificación en dos pasos activa. nodemailer es el cliente
+// SMTP con el que Gmail lleva años probado.
+import nodemailer from "npm:nodemailer@6.9.16";
 
 const URL_SUPABASE = Deno.env.get("SUPABASE_URL")!;
 const LLAVE_SERVICIO = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -271,14 +276,26 @@ Deno.serve(async (): Promise<Response> => {
     .in("id", [...porPersona.keys()]);
 
   // ---- 5. Enviar ----
-  const cliente = new SMTPClient({
-    connection: {
-      hostname: "smtp.gmail.com",
-      port: 465,
-      tls: true,
-      auth: { username: GMAIL_USUARIO, password: GMAIL_CLAVE_APP },
-    },
+  const cliente = nodemailer.createTransport({
+    host: "smtp.gmail.com",
+    port: 465,
+    secure: true,
+    auth: { user: GMAIL_USUARIO, pass: GMAIL_CLAVE_APP },
   });
+
+  // Se comprueba la sesión una sola vez, antes de empezar. Si la contraseña
+  // está mal, da igual cuánta gente haya: el error es el mismo para todos y
+  // repetirlo tres veces solo hace más difícil leerlo.
+  try {
+    await cliente.verify();
+  } catch (e) {
+    return Response.json({
+      ok: false,
+      error: pista((e as Error).message),
+      usuario: GMAIL_USUARIO,
+      largoClave: GMAIL_CLAVE_APP.length,
+    }, { status: 500 });
+  }
 
   let enviados = 0;
   const saltados: string[] = [];
@@ -304,7 +321,7 @@ Deno.serve(async (): Promise<Response> => {
         : `${r.hoy.length} tarea${r.hoy.length === 1 ? "" : "s"} vence${r.hoy.length === 1 ? "" : "n"} hoy`;
 
       try {
-        await cliente.send({
+        await cliente.sendMail({
           from: `Spidey <${GMAIL_USUARIO}>`,
           to: p.email,
           subject: asunto,
@@ -319,7 +336,7 @@ Deno.serve(async (): Promise<Response> => {
       }
     }
   } finally {
-    await cliente.close();
+    cliente.close();
   }
 
   return Response.json({
