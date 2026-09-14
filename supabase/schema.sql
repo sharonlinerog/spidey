@@ -416,6 +416,25 @@ create table if not exists public.suscripciones_push (
 create index if not exists push_usuario_idx on public.suscripciones_push (user_id);
 
 -- =====================================================================
+-- 10.b  AVISOS POR CORREO YA ENVIADOS
+--
+-- Una fila por persona y día. Existe para que nadie reciba el mismo
+-- resumen dos veces: si el cron se dispara de más, si alguien lo lanza a
+-- mano para probar, o si el envío se reintenta, la clave primaria lo
+-- impide. Es más barato guardar una fila que disculparse por ocho correos.
+-- =====================================================================
+create table if not exists public.avisos_enviados (
+  user_id  uuid not null references auth.users(id) on delete cascade,
+  fecha    date not null,
+  enviado  timestamptz not null default now(),
+  tareas   integer not null default 0,
+
+  primary key (user_id, fecha)
+);
+
+comment on table public.avisos_enviados is 'Marca de qué resumen diario se envió a quién. Evita duplicados.';
+
+-- =====================================================================
 -- 11. INVITACIONES POR CORREO
 --
 -- Si invitas a alguien que todavía no tiene cuenta, la invitación espera
@@ -843,6 +862,11 @@ alter table public.adjuntos           enable row level security;
 alter table public.historial          enable row level security;
 alter table public.suscripciones_push enable row level security;
 alter table public.invitaciones       enable row level security;
+alter table public.avisos_enviados    enable row level security;
+
+-- avisos_enviados no lleva ninguna política a propósito: solo lo escribe
+-- la función de envío, que corre con la clave de servicio y no pasa por
+-- RLS. Sin políticas, desde el navegador no se ve ni se toca.
 
 -- ---- perfiles -------------------------------------------------------
 drop policy if exists "ver perfiles de mis tableros" on public.perfiles;
