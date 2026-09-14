@@ -85,7 +85,7 @@ npm run preview
    ```
    VITE_SUPABASE_URL      = https://xxxxxxxx.supabase.co
    VITE_SUPABASE_ANON_KEY = eyJhbGciOi...
-   VITE_VAPID_PUBLIC_KEY  = (opcional, ver sección 6)
+   VITE_VAPID_PUBLIC_KEY  = (opcional, solo para push; ver sección 7)
    ```
 
    Márcalas para **Production**, **Preview** y **Development**.
@@ -120,7 +120,75 @@ La seguridad **no** está en el JavaScript: está en las políticas RLS de Postg
 
 ---
 
-## 6. Recordatorios push (opcional)
+## 6. Avisos diarios por correo
+
+Una vez al día, cada persona recibe **un correo** con lo que vence en los tableros a los que pertenece. Quien está en un tablero recibe lo de ese tablero.
+
+Dos decisiones que conviene conocer:
+
+- **Un correo por persona, no uno por tarea.** Diez vencimientos no deben producir diez correos.
+- **Solo se escribe cuando hay algo vencido o para hoy.** Un correo que dice «nada urgente» es un correo que la gente aprende a ignorar, y con él se pierden los que sí importan.
+
+Se envía con **Brevo**, por HTTP.
+
+> ### ⚠️ Gmail por SMTP no funciona desde Supabase
+>
+> Es lo primero que uno intenta, y no sirve. Google rechaza las conexiones SMTP que salen de las IP de las funciones de borde de Supabase con `534 5.7.9 WebLoginRequired`, **aunque todo esté bien**: contraseña de aplicación válida de 16 caracteres, verificación en dos pasos activa, y la cuenta desbloqueada desde [DisplayUnlockCaptcha](https://accounts.google.com/DisplayUnlockCaptcha).
+>
+> No es un error del código ni de la librería —se probó con `denomailer` y con `nodemailer`—: es la política de Google sobre esas IP. Por eso la vía buena es HTTP, que no negocia inicio de sesión con nadie.
+>
+> El soporte de Gmail sigue en el código por si algún día cambia: sin `BREVO_API_KEY`, la función lo intenta por ahí. La respuesta indica por cuál de las dos salió.
+
+### Paso 1 — Cuenta de Brevo
+
+1. Crea una cuenta gratuita en [brevo.com](https://www.brevo.com). Son 300 correos al día, de sobra para un equipo.
+2. **Verifica el remitente**: en *Senders, Domains & Dedicated IPs → Senders*, añade el correo desde el que quieres escribir y pulsa el enlace que te llega. No hace falta dominio propio.
+3. Genera una clave en [app.brevo.com/settings/keys/api](https://app.brevo.com/settings/keys/api). Empieza por `xkeysib-`.
+
+### Paso 2 — Desplegar la función
+
+```bash
+supabase functions deploy notificar-correo
+supabase secrets set \
+  BREVO_API_KEY=xkeysib-... \
+  CORREO_REMITENTE=elcorreoqueverificaste@gmail.com \
+  APP_URL=https://spidey.tudominio.com
+```
+
+> Si no tienes instalado el CLI de Supabase, no hace falta: `npx supabase ...` lo descarga y ejecuta al vuelo.
+
+### Paso 3 — Programarlo
+
+Abre `supabase/cron.sql`, reemplaza los dos valores de su sección 1 —la URL de tu proyecto y tu clave `anon`, ambas públicas— y ejecútalo en el SQL Editor. Queda a las 8:00 a. m. hora de Colombia.
+
+Para probarlo sin esperar:
+
+```sql
+select public.disparar_correos();
+```
+
+Si ya recibiste el de hoy y quieres repetirlo, borra antes la marca:
+
+```sql
+delete from public.avisos_enviados where fecha = current_date;
+```
+
+### Límites que conviene saber
+
+El plan gratuito de Brevo envía **300 correos al día**. Para un equipo sobra; si algún día no alcanza, se sube de plan sin tocar el código.
+
+### De paso: los correos de la propia cuenta
+
+Supabase envía por su cuenta los correos de confirmación y de recuperar contraseña, pero su servidor de pruebas tiene un límite de ~4 por hora. Puedes usar el mismo Gmail para eso, en **Authentication → Emails → SMTP Settings**:
+
+```
+Host: smtp.gmail.com      Port: 465
+User: tucorreo@gmail.com  Pass: la misma contraseña de aplicación
+```
+
+---
+
+## 7. Recordatorios push (opcional)
 
 Una vez al día Spidey envía **un solo aviso por persona** con lo que vence hoy y lo que ya venció, en todos sus tableros. Llega aunque la app esté cerrada.
 
@@ -156,7 +224,7 @@ Si dejas `VITE_VAPID_PUBLIC_KEY` vacía, la app funciona igual y el botón queda
 
 ---
 
-## 7. Instalarla en el celular
+## 8. Instalarla en el celular
 
 Hay dos caminos, y conviene saber en qué se diferencian:
 
@@ -187,7 +255,7 @@ Una vez instalada abre a pantalla completa, sin barra del navegador, y funciona 
 
 ---
 
-## 8. Cómo está organizado el código
+## 9. Cómo está organizado el código
 
 ```
 ├─ index.html                   Estructura: acceso + app + ficha de tarea + hoja genérica
@@ -198,7 +266,9 @@ Una vez instalada abre a pantalla completa, sin barra del navegador, y funciona 
 │  ├─ schema.sql                Tablas, permisos, disparadores, realtime y migración
 │  ├─ storage.sql               Bucket privado de adjuntos y sus políticas
 │  ├─ cron.sql                  Programación diaria del recordatorio
-│  └─ functions/notificar-vencimientos/index.ts   Quien envía los avisos
+│  └─ functions/
+│     ├─ notificar-correo/index.ts          Resumen diario por correo (SMTP de Gmail)
+│     └─ notificar-vencimientos/index.ts    Los mismos avisos, por push
 ├─ src/
 │  ├─ main.js                   Arranque, sesión, eventos, arrastrar y soltar, exportar
 │  ├─ store.js                  Datos: Supabase + caché local + cola sin conexión
@@ -230,7 +300,7 @@ Una vez instalada abre a pantalla completa, sin barra del navegador, y funciona 
 
 ---
 
-## 9. Antes de abrirla al público
+## 10. Antes de abrirla al público
 
 Como cualquier persona podrá registrarse, revisa esto:
 
@@ -245,7 +315,7 @@ Como cualquier persona podrá registrarse, revisa esto:
 
 ---
 
-## 10. Ideas para la siguiente versión
+## 11. Ideas para la siguiente versión
 
 - Buscar en todos los tableros a la vez, no solo en el activo
 - Menciones (`@alguien`) en los comentarios, con aviso push al mencionado

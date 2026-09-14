@@ -8,12 +8,9 @@
     "userInterfaceStyle": "dark",
     "backgroundColor": "#101010",
     "primaryColor": "#D30000",
-    "splash": {
-      "image": "./assets/splash.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#101010"
-    },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "android": {
       "package": "com.spidey.app",
       "versionCode": 1,
@@ -21,7 +18,10 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#101010"
       },
-      "permissions": ["INTERNET", "ACCESS_NETWORK_STATE"],
+      "permissions": [
+        "INTERNET",
+        "ACCESS_NETWORK_STATE"
+      ],
       "softwareKeyboardLayoutMode": "resize"
     },
     "ios": {
@@ -29,7 +29,22 @@
       "supportsTablet": true
     },
     "extra": {
-      "appUrl": "https://spidey-six-pi.vercel.app"
-    }
+      "appUrl": "https://spidey-six-pi.vercel.app",
+      "eas": {
+        "projectId": "f4331978-d6a0-46d0-bc63-46ba4d3612fd"
+      }
+    },
+    "plugins": [
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#101010"
+        }
+      ],
+      "expo-status-bar"
+    ],
+    "owner": "slinero"
   }
 }

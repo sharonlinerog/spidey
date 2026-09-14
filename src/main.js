@@ -44,6 +44,11 @@ const meta = {
   avance: (id) => store.avanceSubtareas(id),
   comentarios: (id) => store.cuantosComentarios(id),
   adjuntos: (id) => store.cuantosAdjuntos(id),
+  // Se lee en cada pintado, no se guarda: el rol puede cambiar mientras
+  // tienes la app abierta si alguien te asciende o te quita permisos.
+  get puedeEditar() {
+    return store.puedoEditar();
+  },
 };
 
 /* ===================== preferencias de la vista ===================== */
@@ -116,12 +121,17 @@ async function arrancar() {
 
   supabase.auth.onAuthStateChange((evento, sesion) => {
     if (evento === "PASSWORD_RECOVERY") {
-      const nueva = prompt("Escribe tu nueva contraseña (mínimo 8 caracteres):");
-      if (nueva && nueva.length >= 8) {
-        supabase.auth.updateUser({ password: nueva }).then(({ error }) =>
-          brindis(error ? mensajeError(error) : "Contraseña actualizada.", !!error)
-        );
-      }
+      dialogo({
+        titulo: "Elige tu nueva contraseña",
+        texto: "Al menos 8 caracteres. Mézclala con mayúsculas, números y algún símbolo.",
+        ok: "Cambiar contraseña",
+        campo: { etiqueta: "Nueva contraseña", tipo: "password", requerido: true, placeholder: "••••••••" },
+      }).then(async (nueva) => {
+        if (nueva === null) return;
+        if (nueva.length < 8) return brindis("La contraseña debe tener al menos 8 caracteres.", true);
+        const { error } = await supabase.auth.updateUser({ password: nueva });
+        brindis(error ? mensajeError(error) : "Contraseña actualizada.", !!error);
+      });
       return;
     }
     aplicarSesion(sesion);
@@ -779,12 +789,102 @@ el("btn-cerrar-form").addEventListener("click", cerrar);
 el("btn-borrar").addEventListener("click", async () => {
   if (!editandoId) return;
   const t = tareas.find((x) => x.id === editandoId);
-  if (!confirm(`¿Eliminar «${t ? t.titulo : "esta tarea"}»? También se borran sus subtareas, comentarios y adjuntos.`)) return;
+  const ok = await confirmarPeligro(
+    "¿Eliminar esta tarea?",
+    `«${t ? t.titulo : "Esta tarea"}» se borra junto con sus subtareas, comentarios y adjuntos. No se puede deshacer.`
+  );
+  if (!ok) return;
   const id = editandoId;
   cerrar();
   reportar(await store.eliminar(id));
 });
 el("telon").addEventListener("mousedown", (e) => { if (e.target === el("telon")) cerrar(); });
+
+/* ===================== diálogos propios ===================== */
+
+/**
+ * Sustituye a confirm() y prompt() del navegador.
+ *
+ * Los del navegador se pintan con el estilo del sistema operativo —que no
+ * se parece en nada a esto—, no se pueden traducir, y bloquean la página
+ * entera mientras están abiertos. Este vive dentro del diseño y devuelve
+ * una promesa, que además se lee mejor en el sitio donde se usa.
+ *
+ * Sin `campo` devuelve true o false. Con `campo`, devuelve el texto escrito
+ * o null si se canceló.
+ */
+let resolverDialogo = null;
+
+function dialogo({ titulo, texto, ok = "Confirmar", peligro = false, campo = null }) {
+  el("dialogo-titulo").textContent = titulo;
+  el("dialogo-texto").textContent = texto || "";
+  el("dialogo-texto").hidden = !texto;
+  el("dialogo-error").hidden = true;
+
+  const caja = el("dialogo-campo");
+  const input = el("dialogo-input");
+  caja.hidden = !campo;
+  if (campo) {
+    el("dialogo-etiqueta").textContent = campo.etiqueta || "";
+    input.type = campo.tipo || "text";
+    input.value = campo.valor || "";
+    input.placeholder = campo.placeholder || "";
+  }
+
+  const si = el("dialogo-si");
+  si.textContent = ok;
+  si.classList.toggle("btn-peligro", peligro);
+
+  el("telon-dialogo").hidden = false;
+  setTimeout(() => (campo ? input : si).focus(), 30);
+
+  return new Promise((resolve) => {
+    resolverDialogo = { resolve, campo };
+  });
+}
+
+function cerrarDialogo(valor) {
+  if (!resolverDialogo) return;
+  const { resolve } = resolverDialogo;
+  resolverDialogo = null;
+  el("telon-dialogo").hidden = true;
+  resolve(valor);
+}
+
+el("form-dialogo").addEventListener("submit", (ev) => {
+  ev.preventDefault();
+  if (!resolverDialogo) return;
+  const { campo } = resolverDialogo;
+
+  if (!campo) return cerrarDialogo(true);
+
+  const valor = el("dialogo-input").value.trim();
+  // `debeSer` es la salvaguarda de lo irreversible: obliga a escribir algo
+  // concreto —el nombre del tablero, la palabra ELIMINAR— para que borrar
+  // no pueda ser un clic de más.
+  if (campo.debeSer !== undefined && valor !== campo.debeSer) {
+    const e = el("dialogo-error");
+    e.textContent = campo.errorSiNoCoincide || "Lo escrito no coincide. No se hizo nada.";
+    e.hidden = false;
+    return;
+  }
+  if (campo.requerido && !valor) {
+    const e = el("dialogo-error");
+    e.textContent = "Escribe algo primero.";
+    e.hidden = false;
+    return;
+  }
+  cerrarDialogo(valor);
+});
+
+el("dialogo-no").addEventListener("click", () => cerrarDialogo(resolverDialogo && resolverDialogo.campo ? null : false));
+el("telon-dialogo").addEventListener("mousedown", (e) => {
+  if (e.target === el("telon-dialogo")) cerrarDialogo(resolverDialogo && resolverDialogo.campo ? null : false);
+});
+
+/** Atajo para el caso más común: “¿seguro?” con un botón rojo. */
+const confirmarPeligro = (titulo, texto, ok) =>
+  dialogo({ titulo, texto, ok: ok || "Eliminar", peligro: true });
 
 /* ===================== hoja genérica ===================== */
 
@@ -918,7 +1018,7 @@ document.addEventListener("click", async (e) => {
 
   const bc = e.target.closest("[data-borrar-comentario]");
   if (bc) {
-    if (!confirm("¿Eliminar este comentario?")) return;
+    if (!(await confirmarPeligro("¿Eliminar este comentario?", "Desaparecerá para todos los del tablero."))) return;
     reportar(await store.eliminarComentario(bc.dataset.borrarComentario, editandoId));
     return;
   }
@@ -933,7 +1033,7 @@ document.addEventListener("click", async (e) => {
 
   const ba = e.target.closest("[data-borrar-adjunto]");
   if (ba) {
-    if (!confirm("¿Eliminar este archivo? No se puede deshacer.")) return;
+    if (!(await confirmarPeligro("¿Eliminar este archivo?", "Se borra del almacenamiento y no se puede recuperar."))) return;
     reportar(await store.eliminarAdjunto(ba.dataset.borrarAdjunto, ba.dataset.ruta, editandoId));
     return;
   }
@@ -941,7 +1041,7 @@ document.addEventListener("click", async (e) => {
   // --- miembros ---
   const qm = e.target.closest("[data-quitar-miembro]");
   if (qm) {
-    if (!confirm("¿Quitar a esta persona del tablero? Dejará de ver las tareas.")) return;
+    if (!(await confirmarPeligro("¿Quitar a esta persona?", "Dejará de ver las tareas de este tablero. Puedes volver a invitarla cuando quieras.", "Quitar"))) return;
     if (reportar(await store.quitarMiembro(qm.dataset.quitarMiembro), "Listo.")) pintarHojaMiembros();
     return;
   }
@@ -980,7 +1080,10 @@ document.addEventListener("click", async (e) => {
   if (del) {
     const t = tareas.find((x) => x.id === del.dataset.eliminar);
     if (!t) return;
-    if (!confirm(`¿Eliminar «${t.titulo}»? También se borran sus subtareas, comentarios y adjuntos.`)) return;
+    if (!(await confirmarPeligro(
+      "¿Eliminar esta tarea?",
+      `«${t.titulo}» se borra junto con sus subtareas, comentarios y adjuntos. No se puede deshacer.`
+    ))) return;
     reportar(await store.eliminar(t.id));
     return;
   }
@@ -1150,6 +1253,11 @@ document.addEventListener("keydown", (e) => {
   }
 
   if (e.key === "Escape") {
+    // El diálogo va primero: es el que está encima de todo.
+    if (!el("telon-dialogo").hidden) {
+      cerrarDialogo(resolverDialogo && resolverDialogo.campo ? null : false);
+      return;
+    }
     if (!el("tb-panel").hidden) { el("tb-panel").hidden = true; return; }
     if (!el("bandeja-panel").hidden) { el("bandeja-panel").hidden = true; return; }
     if (!el("telon-hoja").hidden) { cerrarHoja(); return; }
@@ -1332,8 +1440,9 @@ async function refrescarBotonRecordatorios() {
 
   if (!push.soportado()) {
     caja.classList.add("inactivo");
-    estado.textContent = "Recordatorios no disponibles";
-    nota.textContent = push.motivoNoDisponible() || "Este navegador no los admite";
+    const m = push.motivoNoDisponible();
+    estado.textContent = m.includes("VAPID") ? "Recordatorios en el celular" : "Recordatorios no disponibles";
+    nota.textContent = m.includes("VAPID") ? "Opcional: los avisos por correo ya funcionan" : (m || "Este navegador no los admite");
     return;
   }
 
@@ -1350,10 +1459,21 @@ async function hojaRecordatorios() {
   const motivo = push.motivoNoDisponible();
   const encendidos = disponible && (await push.activos());
 
+  // Sin llaves VAPID esto no está roto: está sin configurar, y además es
+  // opcional porque los avisos por correo ya cubren lo mismo. Pintarlo en
+  // rojo haría pensar que algo falló.
+  const sinConfigurar = motivo.includes("VAPID");
+
   abrirHoja(
-    "Recordatorios",
-    `<p class="hoja-texto">Una vez al día, Spidey te avisa de lo que vence hoy y de lo que ya venció en todos tus tableros. El aviso llega aunque la app esté cerrada.</p>
-     ${motivo ? `<p class="aviso-acceso">${esc(motivo)}</p>` : ""}
+    "Recordatorios en el celular",
+    `<p class="hoja-texto">Además del correo diario, Spidey puede avisarte con una notificación en la pantalla, aunque la app esté cerrada.</p>
+     ${
+       sinConfigurar
+         ? `<p class="nota-opcional">Esta opción no está configurada, y no hace falta para nada: <b>los avisos por correo ya funcionan</b> y llegan igual. Activarla requiere generar unas llaves de firma y añadirlas al hosting.</p>`
+         : motivo
+         ? `<p class="aviso-acceso">${esc(motivo)}</p>`
+         : ""
+     }
      <p class="hoja-texto"><b>Estado en este dispositivo:</b> ${encendidos ? "activados" : "desactivados"}.</p>
      <div class="hoja-botones">
        ${
@@ -1400,11 +1520,26 @@ async function ejecutarAccion(accion) {
     case "borrar-tablero": {
       if (!activo) return;
       const n = tareas.length;
-      if (!confirm(
-        `¿Eliminar «${activo.nombre}»?\n\nSe borran sus ${n} tarea(s) con sus subtareas, comentarios y adjuntos, y todos los miembros pierden el acceso. No se puede deshacer.`
-      )) return;
-      if (prompt(`Para confirmar, escribe el nombre del tablero:`) !== activo.nombre)
-        return brindis("El nombre no coincide. No se eliminó nada.");
+      const otros = store.listaMiembros().length - 1;
+
+      // Borrar un tablero se lleva por delante el trabajo de más de una
+      // persona, así que no basta con un botón: hay que escribir su nombre.
+      const escrito = await dialogo({
+        titulo: "¿Eliminar este tablero?",
+        texto:
+          `Se borran ${n === 1 ? "su única tarea" : `sus ${n} tareas`} con subtareas, comentarios y adjuntos` +
+          (otros > 0 ? `, y ${otros === 1 ? "la otra persona pierde" : `las otras ${otros} personas pierden`} el acceso` : "") +
+          ". No se puede deshacer.",
+        ok: "Eliminar tablero",
+        peligro: true,
+        campo: {
+          etiqueta: `Escribe «${activo.nombre}» para confirmar`,
+          placeholder: activo.nombre,
+          debeSer: activo.nombre,
+          errorSiNoCoincide: "El nombre no coincide. No se eliminó nada.",
+        },
+      });
+      if (escrito === null) return;
       cerrar();
       reportar(await store.eliminarTablero(activo.id), "Tablero eliminado.");
       return;
@@ -1412,7 +1547,12 @@ async function ejecutarAccion(accion) {
 
     case "salir-tablero": {
       if (!activo) return;
-      if (!confirm(`¿Salirte de «${activo.nombre}»? Dejarás de ver sus tareas. El propietario tendría que volver a invitarte.`)) return;
+      if (!(await dialogo({
+        titulo: "¿Salirte de este tablero?",
+        texto: `Dejarás de ver las tareas de «${activo.nombre}». Para volver, el propietario tendría que invitarte de nuevo.`,
+        ok: "Salirme",
+        peligro: true,
+      }))) return;
       cerrar();
       reportar(await store.salirDelTablero(activo.id), "Saliste del tablero.");
       return;
@@ -1441,10 +1581,17 @@ async function ejecutarAccion(accion) {
       // nombre aparece en los comentarios y en el historial de otras
       // personas, así que conviene que no sea la parte izquierda del correo.
       const actual = store.miPerfilActual();
-      const nombre = prompt(
-        "¿Con qué nombre quieres aparecer?\n\nSe usa para saludarte y es el que ven tus compañeros en comentarios e historial.",
-        (actual && actual.nombre) || store.miNombre()
-      );
+      const nombre = await dialogo({
+        titulo: "¿Con qué nombre quieres aparecer?",
+        texto: "Se usa para saludarte, y es el que ven tus compañeros en los comentarios y en el historial.",
+        ok: "Guardar",
+        campo: {
+          etiqueta: "Tu nombre",
+          valor: (actual && actual.nombre) || store.miNombre(),
+          placeholder: "Nombre y apellido",
+          requerido: true,
+        },
+      });
       if (nombre === null) return;
       if (reportar(await store.cambiarMiNombre(nombre), "Listo, así te verán.")) pintar();
       return;
@@ -1484,11 +1631,21 @@ async function ejecutarAccion(accion) {
 
     /* ---------- cuenta ---------- */
     case "eliminar-cuenta": {
-      if (!confirm(
-        "¿Eliminar tu cuenta?\n\nSe borran tus tableros propios con todas sus tareas, y sales de los tableros ajenos. No se puede deshacer.\n\nDescarga antes tu respaldo si quieres conservar algo."
-      )) return;
-      if (prompt("Para confirmar, escribe: ELIMINAR") !== "ELIMINAR")
-        return brindis("No se eliminó nada.");
+      const escrito = await dialogo({
+        titulo: "¿Eliminar tu cuenta?",
+        texto:
+          "Se borran los tableros de los que eres propietaria, con todas sus tareas, y sales de los ajenos. " +
+          "No se puede deshacer. Si quieres conservar algo, descarga antes tu respaldo desde el menú.",
+        ok: "Eliminar mi cuenta",
+        peligro: true,
+        campo: {
+          etiqueta: "Escribe ELIMINAR para confirmar",
+          placeholder: "ELIMINAR",
+          debeSer: "ELIMINAR",
+          errorSiNoCoincide: "No coincide. No se eliminó nada.",
+        },
+      });
+      if (escrito === null) return;
       const { error } = await supabase.rpc("eliminar_mi_cuenta");
       if (error) return brindis(mensajeError(error), true);
       await supabase.auth.signOut();

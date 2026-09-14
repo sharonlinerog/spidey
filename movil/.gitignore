@@ -12,3 +12,4 @@ android/
 ios/
 npm-debug.*
 .DS_Store
+dist/

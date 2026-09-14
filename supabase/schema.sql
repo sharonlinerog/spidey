@@ -218,6 +218,17 @@ create trigger al_crear_tablero
 -- entraría en recursión infinita. Al saltarse RLS aquí, la pregunta
 -- "¿pertenece este usuario a este tablero?" se responde una sola vez.
 -- =====================================================================
+-- Las tres preguntan por la membresía Y por la propiedad del tablero.
+--
+-- Mirar solo la membresía dejaba fuera a quien acababa de crear el tablero:
+-- al insertarlo, la app pide de vuelta la fila, la base aplica la política
+-- de lectura, y la membresía todavía no existe porque la crea un disparador
+-- que corre después. El dueño no podía ver su propio tablero recién creado
+-- y se quedaba sin ninguno.
+--
+-- Que la propiedad valga por sí sola también es la red de seguridad: si por
+-- lo que sea una fila de membresía se pierde, nadie queda encerrado fuera
+-- de lo suyo.
 create or replace function public.es_miembro(p_tablero uuid)
 returns boolean
 language sql
@@ -226,6 +237,9 @@ security definer
 set search_path = public
 as $$
   select exists (
+    select 1 from public.tableros
+    where id = p_tablero and propietario = auth.uid()
+  ) or exists (
     select 1 from public.tablero_miembros
     where tablero_id = p_tablero and user_id = auth.uid()
   );
@@ -239,6 +253,9 @@ security definer
 set search_path = public
 as $$
   select exists (
+    select 1 from public.tableros
+    where id = p_tablero and propietario = auth.uid()
+  ) or exists (
     select 1 from public.tablero_miembros
     where tablero_id = p_tablero
       and user_id = auth.uid()
@@ -254,6 +271,9 @@ security definer
 set search_path = public
 as $$
   select exists (
+    select 1 from public.tableros
+    where id = p_tablero and propietario = auth.uid()
+  ) or exists (
     select 1 from public.tablero_miembros
     where tablero_id = p_tablero and user_id = auth.uid() and rol = 'propietario'
   );
@@ -394,6 +414,25 @@ create table if not exists public.suscripciones_push (
 );
 
 create index if not exists push_usuario_idx on public.suscripciones_push (user_id);
+
+-- =====================================================================
+-- 10.b  AVISOS POR CORREO YA ENVIADOS
+--
+-- Una fila por persona y día. Existe para que nadie reciba el mismo
+-- resumen dos veces: si el cron se dispara de más, si alguien lo lanza a
+-- mano para probar, o si el envío se reintenta, la clave primaria lo
+-- impide. Es más barato guardar una fila que disculparse por ocho correos.
+-- =====================================================================
+create table if not exists public.avisos_enviados (
+  user_id  uuid not null references auth.users(id) on delete cascade,
+  fecha    date not null,
+  enviado  timestamptz not null default now(),
+  tareas   integer not null default 0,
+
+  primary key (user_id, fecha)
+);
+
+comment on table public.avisos_enviados is 'Marca de qué resumen diario se envió a quién. Evita duplicados.';
 
 -- =====================================================================
 -- 11. INVITACIONES POR CORREO
@@ -823,6 +862,11 @@ alter table public.adjuntos           enable row level security;
 alter table public.historial          enable row level security;
 alter table public.suscripciones_push enable row level security;
 alter table public.invitaciones       enable row level security;
+alter table public.avisos_enviados    enable row level security;
+
+-- avisos_enviados no lleva ninguna política a propósito: solo lo escribe
+-- la función de envío, que corre con la clave de servicio y no pasa por
+-- RLS. Sin políticas, desde el navegador no se ve ni se toca.
 
 -- ---- perfiles -------------------------------------------------------
 drop policy if exists "ver perfiles de mis tableros" on public.perfiles;
@@ -854,10 +898,13 @@ drop policy if exists "crear tableros"        on public.tableros;
 drop policy if exists "editar mis tableros"   on public.tableros;
 drop policy if exists "eliminar mis tableros" on public.tableros;
 
+-- La propiedad se comprueba aquí directamente, sin pasar por es_miembro():
+-- es la condición que hace visible el tablero recién insertado, cuando su
+-- membresía todavía no existe.
 create policy "ver mis tableros"
   on public.tableros for select
   to authenticated
-  using (public.es_miembro(id));
+  using (propietario = auth.uid() or public.es_miembro(id));
 
 create policy "crear tableros"
   on public.tableros for insert

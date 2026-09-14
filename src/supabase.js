@@ -60,8 +60,22 @@ export function mensajeError(error) {
     return "Falta confirmar tu correo. Revisa la bandeja de entrada y el correo no deseado.";
   if (texto.includes("user already registered") || codigo === "user_already_exists")
     return "Ese correo ya tiene cuenta. Entra con tu contraseña o recupérala.";
-  if (texto.includes("password should be at least"))
-    return "La contraseña debe tener al menos 8 caracteres.";
+  // El mínimo lo decide el proyecto de Supabase, no la app. Escribirlo a
+  // mano hacía que una contraseña de 11 caracteres fuese rechazada con un
+  // "debe tener al menos 8", que no hay forma de entender. Se lee del
+  // propio mensaje del servidor.
+  if (texto.includes("password should be at least")) {
+    const n = (error.message.match(/(\d+)/) || [])[1];
+    return n
+      ? `La contraseña debe tener al menos ${n} caracteres.`
+      : "La contraseña es demasiado corta.";
+  }
+  if (texto.includes("password should contain at least one character of each"))
+    return "La contraseña debe mezclar mayúsculas, minúsculas, números y símbolos.";
+  if (texto.includes("known to be weak") || texto.includes("pwned") || texto.includes("easy to guess"))
+    return "Esa contraseña aparece en listas de contraseñas filtradas. Elige otra.";
+  if (texto.includes("weak_password") || codigo === "weak_password")
+    return "Esa contraseña es demasiado fácil de adivinar. Elige otra.";
   if (texto.includes("rate limit") || codigo === "over_email_send_rate_limit")
     return "Demasiados intentos seguidos. Espera un minuto y vuelve a intentarlo.";
   if (texto.includes("failed to fetch") || texto.includes("networkerror"))
